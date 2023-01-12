@@ -41,6 +41,19 @@ Real gm0, rho0, gamma_gas;
 } // namespace
 
 //========================================================================================
+//! \fn void Mesh::InitUserMeshData(ParameterInput *pin)
+//! \brief Function to initialize problem-specific data in mesh class.  Can also be used
+//! to initialize variables which are global to (and therefore can be passed to) other
+//! functions in this file.  Called in Mesh constructor.
+//========================================================================================
+
+void Mesh::InitUserMeshData(ParameterInput *pin) {
+  // Get parameters for gravitatonal potential of central point mass
+  gm0 = pin->GetOrAddReal("problem","GM",0.0);
+  return;
+}
+
+//========================================================================================
 //! \fn void MeshBlock::ProblemGenerator(ParameterInput *pin)
 //! \brief Initializes Keplerian accretion disk.
 //========================================================================================
