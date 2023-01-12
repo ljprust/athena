@@ -66,15 +66,15 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         // compute initial conditions in cylindrical coordinates
         phydro->u(IDN,k,j,i) = den;
         if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
-          phydro->u(IM1,k,j,i) = -vel*std::cos(phi); // radial
-          phydro->u(IM2,k,j,i) =  vel*std::sin(phi); // azimuth
+          phydro->u(IM1,k,j,i) =  vel*std::cos(phi); // radial
+          phydro->u(IM2,k,j,i) = -vel*std::sin(phi); // azimuth
           phydro->u(IM3,k,j,i) =  0.0;               // z
         } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
-          phydro->u(IM1,k,j,i) = -vel*std::cos(phi); // radial
-          phydro->u(IM2,k,j,i) =  vel*std::sin(phi); // polar
+          phydro->u(IM1,k,j,i) =  vel*std::cos(phi); // radial
+          phydro->u(IM2,k,j,i) = -vel*std::sin(phi); // polar
           phydro->u(IM3,k,j,i) =  0.0;               // azimuth
         } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
-          phydro->u(IM1,k,j,i) = -vel; // x
+          phydro->u(IM1,k,j,i) =  vel; // x
           phydro->u(IM2,k,j,i) =  0.0; // y
           phydro->u(IM3,k,j,i) =  0.0; // z
         } else {
