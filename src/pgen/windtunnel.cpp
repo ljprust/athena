@@ -85,7 +85,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         x1 = pcoord->x1v(i);
         GetCylCoord(pcoord,rad,phi,z,i,j,k); // convert to cylindrical coordinates
         // compute initial conditions in cylindrical coordinates
-        phydro->u(IDN,k,j,i) = den;
+        phydro->u(IDN,k,j,i) = rho0;
         if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
           phydro->u(IM1,k,j,i) =  rho0*vel0*std::cos(phi); // radial
           phydro->u(IM2,k,j,i) = -rho0*vel0*std::sin(phi); // azimuth
