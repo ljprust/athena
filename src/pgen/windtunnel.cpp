@@ -46,7 +46,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
-Real gm0, gm1, rho0, gamma_gas;
+Real gm0, gm1, rho0, vel0, p0, gamma_gas;
 } // namespace
 
 //========================================================================================
@@ -59,6 +59,9 @@ Real gm0, gm1, rho0, gamma_gas;
 void Mesh::InitUserMeshData(ParameterInput *pin) {
   // Get parameters for gravitatonal potential of central point mass
   gm0 = pin->GetOrAddReal("problem","GM",0.0);
+  rho0 = pin->GetOrAddReal("problem","rho0",1.0);
+  vel0 = pin->GetOrAddReal("problem","vel0",1.0);
+  p0 = pin->GetOrAddReal("problem","p0",1.0);
   gm1 = pin->GetReal("hydro","gamma") - 1.0;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   return;
@@ -71,12 +74,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   Real rad(0.0), phi(0.0), z(0.0);
-  Real den, vel, p0;
   Real x1, x2, x3;
-
-  den = 1.0;
-  vel = 1.0;
-  p0  = 1.0;
 
   //  Initialize density and momenta
   for (int k=ks; k<=ke; ++k) {
@@ -89,15 +87,15 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         // compute initial conditions in cylindrical coordinates
         phydro->u(IDN,k,j,i) = den;
         if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
-          phydro->u(IM1,k,j,i) =  vel*std::cos(phi); // radial
-          phydro->u(IM2,k,j,i) = -vel*std::sin(phi); // azimuth
+          phydro->u(IM1,k,j,i) =  rho0*vel0*std::cos(phi); // radial
+          phydro->u(IM2,k,j,i) = -rho0*vel0*std::sin(phi); // azimuth
           phydro->u(IM3,k,j,i) =  0.0;               // z
         } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
-          phydro->u(IM1,k,j,i) =  vel*std::cos(phi); // radial
-          phydro->u(IM2,k,j,i) = -vel*std::sin(phi); // polar
+          phydro->u(IM1,k,j,i) =  rho0*vel0*std::cos(phi); // radial
+          phydro->u(IM2,k,j,i) = -rho0*vel0*std::sin(phi); // polar
           phydro->u(IM3,k,j,i) =  0.0;               // azimuth
         } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
-          phydro->u(IM1,k,j,i) =  vel; // x
+          phydro->u(IM1,k,j,i) =  rho0*vel0; // x
           phydro->u(IM2,k,j,i) =  0.0; // y
           phydro->u(IM3,k,j,i) =  0.0; // z
         } else {
@@ -119,7 +117,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           + SQR(phydro->u(IM3,k,j,i)))/phydro->u(IDN,k,j,i);
         */
 
-        phydro->u(IEN,k,j,i) = p0/gm1 + 0.5*vel*vel / den;
+        phydro->u(IEN,k,j,i) = p0/gm1 + 0.5*rho0*vel0*vel0;
       }
     }
   }
@@ -137,10 +135,6 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
                   Real time, Real dt,
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
-  Real den, vel, p0;
-  den = 1.0;
-  vel = 1.0;
-  p0  = 1.0;
   bool inflow;
   Real phi;
 
@@ -153,11 +147,11 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
         inflow = phi > 3.14159/2.0 && phi < 3.14159*3.0/2.0;
 
         if (inflow) {
-          prim(IDN,k,j,iu+i) =  den;
-          prim(IM1,k,j,iu+i) =  vel*std::cos(phi); // radial
-          prim(IM2,k,j,iu+i) = -vel*std::sin(phi); // azimuth
+          prim(IDN,k,j,iu+i) =  rho0;
+          prim(IM1,k,j,iu+i) =  vel0*std::cos(phi); // radial
+          prim(IM2,k,j,iu+i) = -vel0*std::sin(phi); // azimuth
           prim(IM3,k,j,iu+i) =  0.0;               // z
-          prim(IEN,k,j,iu+i) =  p0/gm1 + 0.5*vel*vel / den;
+          prim(IEN,k,j,iu+i) =  p0;
         } else {
           prim(IDN,k,j,iu+i) = prim(IDN,k,j,iu);
           prim(IM1,k,j,iu+i) = prim(IM1,k,j,iu);
