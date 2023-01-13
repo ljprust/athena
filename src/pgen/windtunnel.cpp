@@ -46,7 +46,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
-Real gm0, rho0, gamma_gas;
+Real gm0, gm1, rho0, gamma_gas;
 } // namespace
 
 //========================================================================================
@@ -59,6 +59,7 @@ Real gm0, rho0, gamma_gas;
 void Mesh::InitUserMeshData(ParameterInput *pin) {
   // Get parameters for gravitatonal potential of central point mass
   gm0 = pin->GetOrAddReal("problem","GM",0.0);
+  gm1 = pin->GetReal("hydro","gamma") - 1.0;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   return;
 }
@@ -72,7 +73,6 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   Real rad(0.0), phi(0.0), z(0.0);
   Real den, vel, p0;
   Real x1, x2, x3;
-  Real gm1 = peos->GetGamma() - 1.0;
 
   den = 1.0;
   vel = 1.0;
@@ -141,8 +141,8 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
   den = 1.0;
   vel = 1.0;
   p0  = 1.0;
-  Real gm1 = peos->GetGamma() - 1.0;
   bool inflow;
+  Real phi;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
@@ -159,7 +159,11 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
           prim(IM3,k,j,iu+i) =  0.0;               // z
           prim(IEN,k,j,iu+i) =  p0/gm1 + 0.5*vel*vel / den;
         } else {
-          (*var_cc)(n,k,j,iu+i) = (*var_cc)(n,k,j,iu);
+          prim(IDN,k,j,iu+i) = prim(IDN,k,j,iu);
+          prim(IM1,k,j,iu+i) = prim(IM1,k,j,iu);
+          prim(IM2,k,j,iu+i) = prim(IM2,k,j,iu);
+          prim(IM3,k,j,iu+i) = prim(IM3,k,j,iu);
+          prim(IEN,k,j,iu+i) = prim(IEN,k,j,iu);
         }
 
       }
