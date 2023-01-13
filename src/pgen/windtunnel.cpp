@@ -34,6 +34,15 @@
 #include "../orbital_advection/orbital_advection.hpp"
 #include "../parameter_input.hpp"
 
+#if MAGNETIC_FIELDS_ENABLED
+#error "This problem generator does not support magnetic fields"
+#endif
+
+// inflow/outflow BCs
+void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                       Real time, Real dt,
+                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
@@ -50,12 +59,13 @@ Real gm0, rho0, gamma_gas;
 void Mesh::InitUserMeshData(ParameterInput *pin) {
   // Get parameters for gravitatonal potential of central point mass
   gm0 = pin->GetOrAddReal("problem","GM",0.0);
+  EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   return;
 }
 
 //========================================================================================
 //! \fn void MeshBlock::ProblemGenerator(ParameterInput *pin)
-//! \brief Initializes Keplerian accretion disk.
+//! \brief Initializes wind tunnel.
 //========================================================================================
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
@@ -115,6 +125,46 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   }
 
   return;
+}
+
+//----------------------------------------------------------------------------------------
+//! \fn void WindTunnel2DOuterX1()
+//  \brief Sets boundary condition on upstream boundary (oib) for wind tunnel
+//
+// Quantities at this boundary are held fixed at the constant upstream state
+
+void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  Real den, vel, p0;
+  den = 1.0;
+  vel = 1.0;
+  p0  = 1.0;
+  Real gm1 = peos->GetGamma() - 1.0;
+  bool inflow;
+
+  for (int k=kl; k<=ku; ++k) {
+    for (int j=jl; j<=ju; ++j) {
+      for (int i=1;  i<=ngh; ++i) {
+        //rad=pco->x1v(iu+i);
+        phi=pco->x2v(j);
+        //z=pco->x3v(k);
+        inflow = phi > 3.14159/2.0 && phi < 3.14159*3.0/2.0;
+
+        if (inflow) {
+          prim(IDN,k,j,iu+i) =  den;
+          prim(IM1,k,j,iu+i) =  vel*std::cos(phi); // radial
+          prim(IM2,k,j,iu+i) = -vel*std::sin(phi); // azimuth
+          prim(IM3,k,j,iu+i) =  0.0;               // z
+          prim(IEN,k,j,iu+i) =  p0/gm1 + 0.5*vel*vel / den;
+        } else {
+          (*var_cc)(n,k,j,iu+i) = (*var_cc)(n,k,j,iu);
+        }
+
+      }
+    }
+  }
 }
 
 namespace {
