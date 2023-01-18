@@ -83,16 +83,15 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
       x2 = pcoord->x2v(j);
       for (int i=is; i<=ie; ++i) {
         x1 = pcoord->x1v(i);
-        GetCylCoord(pcoord,rad,phi,z,i,j,k); // convert to cylindrical coordinates
-        // compute initial conditions in cylindrical coordinates
         phydro->u(IDN,k,j,i) = rho0;
         if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
-          phydro->u(IM1,k,j,i) =  rho0*vel0*std::cos(phi); // radial
-          phydro->u(IM2,k,j,i) = -rho0*vel0*std::sin(phi); // azimuth
+          //GetCylCoord(pcoord,rad,phi,z,i,j,k); // convert to cylindrical coordinates
+          phydro->u(IM1,k,j,i) =  rho0*vel0*std::cos(x2); // radial
+          phydro->u(IM2,k,j,i) = -rho0*vel0*std::sin(x2); // azimuth
           phydro->u(IM3,k,j,i) =  0.0;               // z
         } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
-          phydro->u(IM1,k,j,i) =  rho0*vel0*std::cos(phi); // radial
-          phydro->u(IM2,k,j,i) = -rho0*vel0*std::sin(phi); // polar
+          phydro->u(IM1,k,j,i) =  rho0*vel0*std::cos(x2); // radial
+          phydro->u(IM2,k,j,i) = -rho0*vel0*std::sin(x2); // polar
           phydro->u(IM3,k,j,i) =  0.0;               // azimuth
         } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
           phydro->u(IM1,k,j,i) =  rho0*vel0; // x
