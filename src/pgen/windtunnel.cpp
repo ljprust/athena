@@ -47,6 +47,7 @@ namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
 Real gm0, gm1, rho0, vel0, p0, gamma_gas;
+bool diode;
 } // namespace
 
 //========================================================================================
@@ -63,6 +64,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   vel0 = pin->GetOrAddReal("problem","vel0",1.0);
   p0 = pin->GetOrAddReal("problem","p0",1.0);
   gm1 = pin->GetReal("hydro","gamma") - 1.0;
+  diode = pin->GetOrAddBoolean("problem","diode",false);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   return;
 }
@@ -134,7 +136,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
                   Real time, Real dt,
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
-  bool inflow;
+  bool inflow, applyDiode;
   Real phi;
 
   for (int k=kl; k<=ku; ++k) {
@@ -146,17 +148,27 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
         inflow = phi > 3.14159/2.0 && phi < 3.14159*3.0/2.0;
 
         if (inflow) {
+          // set half of the outer boundary to upstream conditions
           prim(IDN,k,j,iu+i) =  rho0;
           prim(IM1,k,j,iu+i) =  vel0*std::cos(phi); // radial
           prim(IM2,k,j,iu+i) = -vel0*std::sin(phi); // azimuth
           prim(IM3,k,j,iu+i) =  0.0;               // z
           prim(IEN,k,j,iu+i) =  p0;
         } else {
+          // the other half lets gas outflow freely
           prim(IDN,k,j,iu+i) = prim(IDN,k,j,iu);
-          prim(IM1,k,j,iu+i) = prim(IM1,k,j,iu);
           prim(IM2,k,j,iu+i) = prim(IM2,k,j,iu);
           prim(IM3,k,j,iu+i) = prim(IM3,k,j,iu);
           prim(IEN,k,j,iu+i) = prim(IEN,k,j,iu);
+
+          // ensure that no gas enters through the outflow boundary
+          // by giving the radial velocity some TLC
+          applyDiode = prim(IM1,k,j,iu) < 0.0;
+          if (diode && applyDiode) {
+            prim(IM1,k,j,iu+i) = 0.0;
+          } else {
+            prim(IM1,k,j,iu+i) = prim(IM1,k,j,iu);
+          }
         }
 
       }
