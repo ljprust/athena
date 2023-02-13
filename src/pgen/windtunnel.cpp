@@ -46,7 +46,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
-Real gm0, rho0, vel0, p0, gamma, semimajor;
+Real gm0, rho0, vel0, p0, gamma, semimajor, gmstar;
 bool diode, hydrostatic;
 } // namespace
 
@@ -67,6 +67,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   diode = pin->GetOrAddBoolean("problem","diode",false);
   hydrostatic = pin->GetOrAddBoolean("problem","hydrostatic",false);
   semimajor = pin->GetOrAddReal("problem","semimajor",0.0);
+  gmstar = pin->GetOrAddReal("problem","gm_star",0.0);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   return;
 }
@@ -92,7 +93,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
         if (hydrostatic) {
           cs2 = gamma*p0/rho0;
-          Minf2 = vel0*vel0/cs2;
+          Minf2 = gmstar/semimajor/cs2; // vel0*vel0/cs2;
           if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
             y = x1*std::sin(x2);
           } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
@@ -129,18 +130,6 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           ATHENA_ERROR(msg);
         }
 
-        /*
-        if (NON_BAROTROPIC_EOS) {
-          phydro->u(IEN,k,j,i) = p_over_r*phydro->u(IDN,k,j,i)/(gamma_gas - 1.0);
-          phydro->u(IEN,k,j,i) += 0.5*(SQR(phydro->u(IM1,k,j,i))+SQR(phydro->u(IM2,k,j,i))
-                                       + SQR(phydro->u(IM3,k,j,i)))/phydro->u(IDN,k,j,i);
-        }
-
-        phydro->u(IEN,k,j,i) = p0/gm1
-          + (0.5)*(SQR(phydro->u(IM1,k,j,i)) + SQR(phydro->u(IM2,k,j,i))
-          + SQR(phydro->u(IM3,k,j,i)))/phydro->u(IDN,k,j,i);
-        */
-
         phydro->u(IEN,k,j,i) = pres/(gamma-1.0) + 0.5*rho*vel0*vel0;
       }
     }
@@ -174,7 +163,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 
         if (hydrostatic) {
           cs2 = gamma*p0/rho0;
-          Minf2 = vel0*vel0/cs2;
+          Minf2 = gmstar/semimajor/cs2; // vel0*vel0/cs2;
           if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
             y = pco->x2v(iu+i)*std::sin(pco->x1v(j));
           } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {

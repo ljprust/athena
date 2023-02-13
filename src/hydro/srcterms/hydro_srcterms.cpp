@@ -65,6 +65,14 @@ HydroSourceTerms::HydroSourceTerms(Hydro *phyd, ParameterInput *pin) {
       hydro_sourceterms_defined = true;
     }
   }
+
+  Real semimajor = pin->GetOrAddReal("problem","semimajor",0.0);
+  Real gmstar = pin->GetOrAddReal("problem","gm_star",0.0);
+  if (gmstar != 0.0) {
+    flag_user_gravity_ = true;
+    hydro_sourceterms_defined = true;
+  }
+
   g1_ = pin->GetOrAddReal("hydro","grav_acc1",0.0);
   if (g1_ != 0.0) hydro_sourceterms_defined = true;
 
@@ -127,6 +135,9 @@ void HydroSourceTerms::AddSourceTerms(const Real time, const Real dt,
   // accleration due to point mass (MUST BE AT ORIGIN)
   if (flag_point_mass_)
     PointMass(dt, flux, prim, cons);
+
+  if (flag_user_gravity_)
+    UserGravity(dt, flux, prim, cons);
 
   // constant acceleration (e.g. for RT instability)
   if (g1_ != 0.0 || g2_ != 0.0 || g3_ != 0.0)
