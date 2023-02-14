@@ -46,7 +46,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
-Real gm0, rho0, vel0, p0, gamma, semimajor, gmstar;
+Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
 bool diode, hydrostatic;
 } // namespace
 
@@ -63,7 +63,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   rho0 = pin->GetOrAddReal("problem","rho0",1.0);
   vel0 = pin->GetOrAddReal("problem","vel0",1.0);
   p0 = pin->GetOrAddReal("problem","p0",1.0);
-  gamma = pin->GetOrAddReal("hydro","gamma",0.0);
+  gammagas = pin->GetOrAddReal("hydro","gamma",0.0);
   diode = pin->GetOrAddBoolean("problem","diode",false);
   hydrostatic = pin->GetOrAddBoolean("problem","hydrostatic",false);
   semimajor = pin->GetOrAddReal("problem","semimajor",0.0);
@@ -92,7 +92,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         x1 = pcoord->x1v(i);
 
         if (hydrostatic) {
-          cs2 = gamma*p0/rho0;
+          cs2 = gammagas*p0/rho0;
           Minf2 = gmstar/semimajor/cs2; // vel0*vel0/cs2;
           if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
             y = x1*std::sin(x2);
@@ -101,9 +101,9 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
             y = x2;
           }
-          ratio = 1.0 - (gamma-1.0)*Minf2/(1.0+semimajor/y);
-          rho = rho0*std::pow( ratio, 1.0/(gamma-1.0) );
-          pres = p0*std::pow( ratio, gamma/(gamma-1.0) );
+          ratio = 1.0 - (gammagas-1.0)*Minf2/(1.0+semimajor/y);
+          rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
+          pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
         } else {
           rho = rho0;
           pres = p0;
@@ -130,7 +130,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           ATHENA_ERROR(msg);
         }
 
-        phydro->u(IEN,k,j,i) = pres/(gamma-1.0) + 0.5*rho*vel0*vel0;
+        phydro->u(IEN,k,j,i) = pres/(gammagas-1.0) + 0.5*rho*vel0*vel0;
       }
     }
   }
@@ -162,7 +162,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
         inflow = phi > 3.14159/2.0 && phi < 3.14159*3.0/2.0;
 
         if (hydrostatic) {
-          cs2 = gamma*p0/rho0;
+          cs2 = gammagas*p0/rho0;
           Minf2 = gmstar/semimajor/cs2; // vel0*vel0/cs2;
           if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
             y = pco->x2v(iu+i)*std::sin(pco->x1v(j));
@@ -171,9 +171,9 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
           } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
             y = pco->x2v(j);
           }
-          ratio = 1.0 - (gamma-1.0)*Minf2/(1.0+semimajor/y);
-          rho = rho0*std::pow( ratio, 1.0/(gamma-1.0) );
-          pres = p0*std::pow( ratio, gamma/(gamma-1.0) );
+          ratio = 1.0 - (gammagas-1.0)*Minf2/(1.0+semimajor/y);
+          rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
+          pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
         } else {
           rho = rho0;
           pres = p0;
