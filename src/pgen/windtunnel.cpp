@@ -73,8 +73,8 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   hydrostatic = pin->GetOrAddBoolean("problem","hydrostatic",false);
   semimajor = pin->GetOrAddReal("problem","semimajor",0.0);
   gmstar = pin->GetOrAddReal("problem","gm_star",0.0);
-  pfloor = pin->GetOrAddReal("hydro","pfloor",0.0)
-  dfloor = pin->GetOrAddReal("hydro","dfloor",0.0)
+  pfloor = pin->GetOrAddReal("hydro","pfloor",0.0);
+  dfloor = pin->GetOrAddReal("hydro","dfloor",0.0);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
   return;
