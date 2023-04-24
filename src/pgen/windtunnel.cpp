@@ -42,12 +42,17 @@
 void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                        Real time, Real dt,
                        int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+// vacuum boundary
+void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                       Real time, Real dt,
+                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
 Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
 bool diode, hydrostatic;
+Real pfloor, dfloor;
 } // namespace
 
 //========================================================================================
@@ -68,7 +73,10 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   hydrostatic = pin->GetOrAddBoolean("problem","hydrostatic",false);
   semimajor = pin->GetOrAddReal("problem","semimajor",0.0);
   gmstar = pin->GetOrAddReal("problem","gm_star",0.0);
+  pfloor = pin->GetOrAddReal("hydro","pfloor",0.0)
+  dfloor = pin->GetOrAddReal("hydro","dfloor",0.0)
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
+  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
   return;
 }
 
@@ -202,6 +210,40 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
             prim(IM1,k,j,iu+i) = prim(IM1,k,j,iu);
           }
         }
+
+      }
+    }
+  }
+}
+
+//----------------------------------------------------------------------------------------
+//! \fn void WindTunnel2DInnerX1()
+//  \brief Sets vacuum inner boundary
+//
+// Quantities in ghost cells are set to pressure and density floors
+
+void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  Real rho, pres;
+
+  if ( pfloor==0.0 || dfloor==0.0 ) {
+    std::stringstream msg;
+    msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
+        << "pressure and/or density floors not set" << std::endl;
+    ATHENA_ERROR(msg);
+  }
+
+  for (int k=kl; k<=ku; ++k) {
+    for (int j=jl; j<=ju; ++j) {
+      for (int i=1;  i<=ngh; ++i) {
+
+        prim(IDN,k,j,iu-i) = dfloor;
+        prim(IM1,k,j,iu-i) = 0.0;
+        prim(IM2,k,j,iu-i) = 0.0;
+        prim(IM3,k,j,iu-i) = 0.0;
+        prim(IEN,k,j,iu-i) = pfloor;
 
       }
     }
