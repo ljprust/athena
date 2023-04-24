@@ -20,16 +20,35 @@ Requires scipy if making a stream plot.
 # Python standard modules
 import argparse
 import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # Other Python modules
 import numpy as np
 
 # Athena++ modules
 import athena_read
+gamma=5.0/3.0
+Pinf = 9109.0
+rhoinf = 6.76e-9
+nfiles = 50
+first = 5
+interval = 10
+fileprefix = 'wt.out1.'
+filesuffix = '.athdf'
 
+# create list of filenames
+filename = []
+for i in range(0, nfiles) :
+    num = 100000 + first + i * interval
+    numstr = str(num)
+    cut = numstr[1:7]
+    filename.append(cut)
 
 # Main function
-def main(**kwargs):
+def main(myj,**kwargs):
+    if(nfiles>0):
+        kwargs['data_file'] = fileprefix+filename[myj]+filesuffix
+    print 'starting file',kwargs['data_file']
 
     # Load function for transforming coordinates
     if kwargs['stream'] is not None:
@@ -78,6 +97,112 @@ def main(**kwargs):
         if quantities[0] == 'Levels':
             data = athena_read.athdf(kwargs['data_file'], quantities=quantities[1:],
                                      level=level, return_levels=True)
+        elif kwargs['entropy'] :
+            entinf    = Pinf*np.power(rhoinf,-gamma)
+            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+                                     level=level)
+            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
+                                     level=level)
+            data['rho'] = datapress['press']*np.power(data['rho'],-gamma)/entinf
+        elif kwargs['enthalpy'] :
+            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+                                     level=level)
+            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
+                                     level=level)
+            data['rho'] = gamma/(gamma-1.0)*datapress['press']/data['rho']
+        elif kwargs['bound'] :
+            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+                                     level=level)
+            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
+                                     level=level)
+            coordinates = data['Coordinates'].decode('ascii', 'replace')
+            r = data['x1v']
+            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
+                                     level=level)
+            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz2'],
+                                     level=level)
+            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz3'],
+                                     level=level)
+            data['rho'] = 0.5*(datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']) - kwargs['gm']/r + datapress['press']/(gamma-1.0)/data['rho']
+        elif kwargs['head'] :
+            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+                                     level=level)
+            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
+                                     level=level)
+            coordinates = data['Coordinates'].decode('ascii', 'replace')
+            r = data['x1v']
+            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
+                                     level=level)
+            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz2'],
+                                     level=level)
+            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz3'],
+                                     level=level)
+            data['rho'] = 0.5*(datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']) - kwargs['gm']/r + datapress['press']*gamma/(gamma-1.0)/data['rho']
+        elif kwargs['bernoulli'] :
+            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+                                     level=level)
+            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
+                                     level=level)
+            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
+                                     level=level)
+            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz2'],
+                                     level=level)
+            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz3'],
+                                     level=level)
+            data['rho'] = 0.5*data['rho']*(datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']) + datapress['press']
+        elif kwargs['energy'] :
+            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+                                     level=level)
+            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
+                                     level=level)
+            coordinates = data['Coordinates'].decode('ascii', 'replace')
+            r = data['x1v']
+            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
+                                     level=level)
+            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz2'],
+                                     level=level)
+            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz3'],
+                                     level=level)
+            data['rho'] = 0.5*(datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']) + datapress['press']/(gamma-1.0)/data['rho']
+        elif kwargs['kinetic'] :
+            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+                                     level=level)
+            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
+                                     level=level)
+            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz2'],
+                                     level=level)
+            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz3'],
+                                     level=level)
+            data['rho'] = 0.5*(datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3'])
+        elif kwargs['totalenthalpy'] :
+            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+                                     level=level)
+            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
+                                     level=level)
+            coordinates = data['Coordinates'].decode('ascii', 'replace')
+            r = data['x1v']
+            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
+                                     level=level)
+            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz2'],
+                                     level=level)
+            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz3'],
+                                     level=level)
+            data['rho'] = 0.5*(datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']) + datapress['press']*gamma/(gamma-1.0)/data['rho']
+        elif kwargs['mach'] :
+            data      = athena_read.athdf(kwargs['data_file'], quantities=quantities,
+                                     level=level)
+            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
+                                     level=level)
+            cs2 = gamma*datapress['press']/data['rho']
+            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
+                                     level=level)
+            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz2'],
+                                     level=level)
+            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz3'],
+                                     level=level)
+            
+            v2 = datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']
+            data['rho'] = np.sqrt(v2/cs2)
         else:
             data = athena_read.athdf(kwargs['data_file'], quantities=quantities,
                                      level=level)
@@ -119,7 +244,7 @@ def main(**kwargs):
 
     # Create streamline grid
     if kwargs['stream'] is not None:
-        x_stream = np.linspace(-r_max, r_max, kwargs['stream_samples'])
+        x_stream = kwargs['xoffset']*kwargs['lscale']+np.linspace(-r_max, r_max, kwargs['stream_samples'])
         if kwargs['midplane']:
             y_stream = np.linspace(-r_max, r_max, kwargs['stream_samples'])
             x_grid_stream, y_grid_stream = np.meshgrid(x_stream, y_stream)
@@ -129,7 +254,7 @@ def main(**kwargs):
                                    / (2.0*np.pi + 2.0 * phi[0])) * (nx3 + 1)
         else:
             z_stream = np.linspace(-r_max, r_max, kwargs['stream_samples'])
-            x_grid_stream, z_grid_stream = np.meshgrid(x_stream, z_stream)
+            z_grid_stream, x_grid_stream = np.meshgrid(x_stream, z_stream)
             r_grid_stream_coord = (x_grid_stream.T**2 + z_grid_stream.T**2) ** 0.5
             theta_grid_stream_coord = np.pi - \
                 np.arctan2(x_grid_stream.T, -z_grid_stream.T)
@@ -174,11 +299,16 @@ def main(**kwargs):
         if kwargs['average']:
             vals_right = np.mean(data[kwargs['quantity']], axis=0)
             vals_left = vals_right
+        #else:
+        #    vals_right = 0.5 * (data[kwargs['quantity']]
+        #                        [-1, :, :] + data[kwargs['quantity']][0, :, :])
+        #    vals_left = 0.5 * (data[kwargs['quantity']][(nx3/2)-1, :, :]
+        #                       + data[kwargs['quantity']][nx3 / 2, :, :])
         else:
-            vals_right = 0.5 * (data[kwargs['quantity']]
-                                [-1, :, :] + data[kwargs['quantity']][0, :, :])
-            vals_left = 0.5 * (data[kwargs['quantity']][(nx3/2)-1, :, :]
-                               + data[kwargs['quantity']][nx3 / 2, :, :])
+            vals_right = 0.5 * (data[kwargs['quantity']][nx3/4-1, :, :]
+                               + data[kwargs['quantity']][nx3/4, :, :])
+            vals_left = 0.5 * (data[kwargs['quantity']][nx3*3/4-1, :, :]
+                               + data[kwargs['quantity']][nx3*3/4, :, :])
 
     # Join scalar data through boundaries
     if not kwargs['midplane']:
@@ -284,8 +414,17 @@ def main(**kwargs):
         norm = colors.Normalize()
 
     # Make plot
-    plt.figure()
-    im = plt.pcolormesh(x_grid, y_grid, vals, cmap=cmap, vmin=vmin, vmax=vmax, norm=norm)
+    plt.figure(figsize=[10.0,10.0])
+    im = plt.pcolormesh(y_grid/kwargs['lscale'], x_grid/kwargs['lscale'], vals, cmap=cmap, vmin=vmin, vmax=vmax, norm=norm)
+    #cont = plt.contour(y_grid[0:-1,0:-1], x_grid[0:-1,0:-1], vals, 1, colors='k',origin='lower')
+    plt.gca().set_aspect('equal')
+    plt.xlim((-r_max/kwargs['lscale']+kwargs['xoffset'], r_max/kwargs['lscale']+kwargs['xoffset']))
+    plt.ylim((-r_max/kwargs['lscale'], r_max/kwargs['lscale']))
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    circle = plt.Circle((0.0,0.0), 0.02, fc='None', ec='k', lw=1.0)
+    plt.gca().add_patch(circle)
+    #plt.set_cmap('inferno')
     if kwargs['stream'] is not None:
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -294,33 +433,52 @@ def main(**kwargs):
                 RuntimeWarning,
                 'numpy')
             if kwargs['midplane']:
-                plt.streamplot(x_stream, y_stream, vals_x.T, vals_y.T,
+                plt.streamplot(x_stream/kwargs['lscale'], y_stream/kwargs['lscale'], vals_x.T, vals_y.T,
                                density=kwargs['stream_density'], color='k')
             else:
-                plt.streamplot(x_stream, z_stream, vals_x.T, vals_z.T,
+                plt.streamplot(z_stream/kwargs['lscale']+kwargs['xoffset'], x_stream/kwargs['lscale']-kwargs['xoffset'], vals_z.T, vals_x.T,
                                density=kwargs['stream_density'], color='k')
-    plt.gca().set_aspect('equal')
-    plt.xlim((-r_max, r_max))
-    plt.ylim((-r_max, r_max))
     if kwargs['logr']:
         if kwargs['midplane']:
-            plt.xlabel(r'$\log_{10}(r)\ x / r$')
-            plt.ylabel(r'$\log_{10}(r)\ y / r$')
+            plt.xlabel(r'$\log_{10}(r)\ x / r$', fontsize=20)
+            plt.ylabel(r'$\log_{10}(r)\ y / r$', fontsize=20)
         else:
-            plt.xlabel(r'$\log_{10}(r)\ x / r$')
-            plt.ylabel(r'$\log_{10}(r)\ z / r$')
+            plt.xlabel(r'$\log_{10}(r)\ x / r$', fontsize=20)
+            plt.ylabel(r'$\log_{10}(r)\ z / r$', fontsize=20)
     else:
         if kwargs['midplane']:
-            plt.xlabel(r'$x$')
-            plt.ylabel(r'$y$')
+            plt.xlabel(r'$x/R$', fontsize=20)
+            plt.ylabel(r'$y/R$', fontsize=20)
         else:
-            plt.xlabel(r'$x$')
-            plt.ylabel(r'$z$')
-    plt.colorbar(im)
+            plt.xlabel(r'$x/R$', fontsize=20)
+            plt.ylabel(r'$z/R$', fontsize=20)
+    cbar = plt.colorbar(im, shrink=0.8)
+    if kwargs['entropy'] :
+        cbar.set_label(r'$\sigma/\sigma_{\infty}$', fontsize=20)
+        saveasprefix = 'ent'
+    elif kwargs['mach'] :
+        cbar.set_label(r'$\mathcal{M}$', fontsize=20)
+        saveasprefix = 'mach'
+    elif kwargs['head'] :
+        cbar.set_label(r'$B$ (ergs)', fontsize=20)
+        #cbar.set_ticks([7.4e12,7.6e12,7.8e12,8.0e12])
+        saveasprefix = 'head'
+    elif kwargs['enthalpy'] :
+        cbar.set_label(r'$h$ (ergs)', fontsize=20)
+        saveasprefix = 'enth'
+    elif kwargs['quantity'] == 'press' :
+        cbar.set_label(r'$P$ (baryes)', fontsize=20)
+        saveasprefix = 'pres'
+    else :
+        cbar.set_label(r'$\rho$ (g/cm$^{3}$)', fontsize=20)
+        saveasprefix = 'rho'
+    if(nfiles>0):
+        kwargs['output_file'] = saveasprefix + filename[myj]
     if kwargs['output_file'] == 'show':
         plt.show()
     else:
         plt.savefig(kwargs['output_file'], bbox_inches='tight')
+        print 'saved figure',kwargs['output_file']
 
 
 # Execute main function
@@ -386,10 +544,55 @@ if __name__ == '__main__':
                         type=int,
                         default=100,
                         help='linear size of stream line sampling grid')
+    parser.add_argument('--xoffset',
+                        type=float,
+                        default=0.0,
+                        help='x offset of plot center')
     parser.add_argument('--theta_compression',
                         type=float,
                         default=None,
                         help=('compression parameter h in '
                               'theta = pi*x_2 + (1-h)/2 * sin(2*pi*x_2)'))
+    parser.add_argument('--entropy',
+                        action='store_true',
+                        help=('plot entropy'))
+    parser.add_argument('--bound',
+                        action='store_true',
+                        help=('plot bound material'))
+    parser.add_argument('--energy',
+                        action='store_true',
+                        help=('plot bound material'))
+    parser.add_argument('--totalenthalpy',
+                        action='store_true',
+                        help=('plot bound material'))
+    parser.add_argument('--mach',
+                        action='store_true',
+                        help=('plot Mach number'))
+    parser.add_argument('--kinetic',
+                        action='store_true',
+                        help=('plot kinetic energy'))
+    parser.add_argument('--head',
+                        action='store_true',
+                        help=('plot total head'))
+    parser.add_argument('--enthalpy',
+                        action='store_true',
+                        help=('plot enthalpy'))
+    parser.add_argument('--bernoulli',
+                        action='store_true',
+                        help=('plot Bernoulli number'))
+    parser.add_argument('--gm',
+                        type=float,
+                        default=0.0,
+                        help=('mu of planet'))
+    parser.add_argument('--lscale',
+                        type=float,
+                        default=1.0,
+                        help=('length scale'))
     args = parser.parse_args()
-    main(**vars(args))
+    if(nfiles>0):
+        jindex=0
+        for name in filename :
+            main(jindex,**vars(args))
+            jindex = jindex+1
+    else :
+        main(0,**vars(args))
