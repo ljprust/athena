@@ -52,7 +52,7 @@ void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k)
 // problem parameters which are useful to make global to this file
 Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
 bool diode, hydrostatic;
-Real pvacuum, dvacuum;
+Real pvacuum, dvacuum, densgrad;
 } // namespace
 
 //========================================================================================
@@ -75,6 +75,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   gmstar = pin->GetOrAddReal("problem","gm_star",0.0);
   pvacuum = pin->GetOrAddReal("problem","pvacuum",0.0);
   dvacuum = pin->GetOrAddReal("problem","dvacuum",0.0);
+  densgrad = pin->GetOrAddReal("problem","densgrad",0.0);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
   return;
@@ -113,11 +114,12 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
           pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
         } else {
-          rho = rho0;
+          rho = rho0*(1.0-y*densgrad);
           pres = p0;
         }
 
         phydro->u(IDN,k,j,i) = rho;
+
         if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
           //GetCylCoord(pcoord,rad,phi,z,i,j,k); // convert to cylindrical coordinates
           phydro->u(IM1,k,j,i) =  rho*vel0*std::cos(x2); // radial
@@ -183,7 +185,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
           rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
           pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
         } else {
-          rho = rho0;
+          rho = rho0*(1.0-y*densgrad);
           pres = p0;
         }
 
@@ -227,7 +229,7 @@ void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
   Real rho, pres;
-  
+
   if ( pvacuum==0.0 || dvacuum==0.0 ) {
     std::stringstream msg;
     msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
