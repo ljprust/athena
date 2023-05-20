@@ -28,11 +28,11 @@ import numpy as np
 # Athena++ modules
 import athena_read
 gamma=5.0/3.0
-Pinf = 9109.0
-rhoinf = 6.76e-9
-nfiles = 50
-first = 5
-interval = 10
+Pinf = 1.0/gamma # 9109.0
+rhoinf = 1.0 # 6.76e-9
+nfiles = 1
+first = 50
+interval = 1
 fileprefix = 'wt.out1.'
 filesuffix = '.athdf'
 
@@ -203,7 +203,24 @@ def main(myj,**kwargs):
             
             v2 = datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']
             data['rho'] = np.sqrt(v2/cs2)
-        else:
+            '''
+            elif kwargs['vorticity'] :
+                data = athena_read.athdf(kwargs['data_file'], quantities=['vel1','vel2','vel3'], level=level)
+                coordinates = data['Coordinates'].decode('ascii', 'replace')
+                r = data['x1v']
+                theta = data['x2v']
+                phi = data['x3v']
+                r_face = data['x1f']
+                nx1 = len(r)
+                nx2 = len(theta)
+                nx3 = len(phi)           
+                Pgradfront[l] = (pressfront[l+1]-pressfront[l])/(r[l+1]-r[l])
+                    Pgradrhofront[l] = 0.5*(rhofront[l]+rhofront[l+1])
+                    Pgradback[l] = (pressback[l+1]-pressback[l])/(r[l+1]-r[l])
+                    Pgradrhoback[l] = 0.5*(rhoback[l]+rhoback[l+1])
+                    Pgradrad[l] = r_face[l+1]
+            '''
+        else :
             data = athena_read.athdf(kwargs['data_file'], quantities=quantities,
                                      level=level)
 
@@ -422,7 +439,7 @@ def main(myj,**kwargs):
     plt.ylim((-r_max/kwargs['lscale'], r_max/kwargs['lscale']))
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
-    circle = plt.Circle((0.0,0.0), 0.02, fc='None', ec='k', lw=1.0)
+    circle = plt.Circle((0.0,0.0), 0.002, fc='None', ec='k', lw=1.0)
     plt.gca().add_patch(circle)
     #plt.set_cmap('inferno')
     if kwargs['stream'] is not None:
@@ -469,6 +486,9 @@ def main(myj,**kwargs):
     elif kwargs['quantity'] == 'press' :
         cbar.set_label(r'$P$ (baryes)', fontsize=20)
         saveasprefix = 'pres'
+    elif kwargs['quantity'] == 'vorticity' :
+        cbar.set_label(r'$\nabla\times v$', fontsize=20)
+        saveasprefix = 'vort'
     else :
         cbar.set_label(r'$\rho$ (g/cm$^{3}$)', fontsize=20)
         saveasprefix = 'rho'
@@ -580,6 +600,9 @@ if __name__ == '__main__':
     parser.add_argument('--bernoulli',
                         action='store_true',
                         help=('plot Bernoulli number'))
+    parser.add_argument('--vorticity',
+                        action='store_true',
+                        help=('plot vorticity'))
     parser.add_argument('--gm',
                         type=float,
                         default=0.0,
