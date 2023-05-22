@@ -100,16 +100,17 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
       for (int i=is; i<=ie; ++i) {
         x1 = pcoord->x1v(i);
 
+        if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
+          y = x1*std::sin(x2);
+        } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
+          y = x1*std::sin(x2)*std::cos(x3);
+        } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
+          y = x2;
+        }
+
         if (hydrostatic) {
           cs2 = gammagas*p0/rho0;
           Minf2 = gmstar/semimajor/cs2; // vel0*vel0/cs2;
-          if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
-            y = x1*std::sin(x2);
-          } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
-            y = x1*std::sin(x2)*std::cos(x3);
-          } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
-            y = x2;
-          }
           ratio = 1.0 - (gammagas-1.0)*Minf2/(1.0+semimajor/y);
           rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
           pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
@@ -171,16 +172,17 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
         //z=pco->x3v(k);
         inflow = phi > 3.14159/2.0 && phi < 3.14159*3.0/2.0;
 
+        if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
+          y = pco->x2v(iu+i)*std::sin(pco->x1v(j));
+        } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
+          y = pco->x1v(iu+i)*std::sin(pco->x2v(j))*std::cos(pco->x3v(k));
+        } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
+          y = pco->x2v(j);
+        }
+
         if (hydrostatic) {
           cs2 = gammagas*p0/rho0;
           Minf2 = gmstar/semimajor/cs2; // vel0*vel0/cs2;
-          if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
-            y = pco->x2v(iu+i)*std::sin(pco->x1v(j));
-          } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
-            y = pco->x1v(iu+i)*std::sin(pco->x2v(j))*std::cos(pco->x3v(k));
-          } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
-            y = pco->x2v(j);
-          }
           ratio = 1.0 - (gammagas-1.0)*Minf2/(1.0+semimajor/y);
           rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
           pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
