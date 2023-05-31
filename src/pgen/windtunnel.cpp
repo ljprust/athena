@@ -277,7 +277,7 @@ void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
   Real rho, v1, v2, v3, vsq;
 
   tend = tstartexp + dtexp;
-  bool ininterval = time > tstart && time < tend;
+  bool ininterval = time > tstartexp && time < tend;
 
   for (int k=pmb->ks; k<=pmb->ke; ++k) {
     for (int j=pmb->js; j<=pmb->je; ++j) {
