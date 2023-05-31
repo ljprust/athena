@@ -56,7 +56,7 @@ void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k)
 // problem parameters which are useful to make global to this file
 Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
 bool diode, hydrostatic;
-Real pvacuum, dvacuum, densgrad, Pexp;
+Real pvacuum, dvacuum, densgrad, Pexp, dexp, rexp, tstartexp, dtexp;
 } // namespace
 
 //========================================================================================
