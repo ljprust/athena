@@ -31,7 +31,7 @@ gamma=5.0/3.0
 Pinf = 1.0/gamma # 9109.0
 rhoinf = 1.0 # 6.76e-9
 nfiles = 1
-first = 50
+first = 20
 interval = 1
 fileprefix = 'wt.out1.'
 filesuffix = '.athdf'
@@ -194,14 +194,14 @@ def main(myj,**kwargs):
             datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
                                      level=level)
             cs2 = gamma*datapress['press']/data['rho']
-            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
+            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel1'],
                                      level=level)
-            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz2'],
+            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel2'],
                                      level=level)
-            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz3'],
+            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel3'],
                                      level=level)
             
-            v2 = datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']
+            v2 = datavel1['vel1']*datavel1['vel1']+datavel2['vel2']*datavel2['vel2']+datavel3['vel3']*datavel3['vel3']
             data['rho'] = np.sqrt(v2/cs2)
             '''
             elif kwargs['vorticity'] :
