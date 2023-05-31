@@ -271,6 +271,7 @@ void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
   Bool inExp;
   Real rsink, dexp, rexp;
   Real tstart, dtexp, tend;
+  Real rho, v1, v2, v3, v2;
 
   rsink = 0.002;
   dexp = 10.0*rsink;
@@ -300,10 +301,14 @@ void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
         x = x-dexp;
         r2_relative = x*x + y*y + z*z;
         inExp = rexp*rexp > r2_relative;
-        //Real den = prim(IDN,k,j,i);
+        rho = prim(IDN,k,j,i);
+        v1 = prim(IVX,k,j,i);
+        v2 = prim(IVY,k,j,i);
+        v3 = prim(IVZ,k,j,i);
+        v2 = v1*v1 + v2*v2 + v3*v3;
         if (NON_BAROTROPIC_EOS && Pexp>0.0 && inExp && ininterval) {
           //cons(IEN,k,j,i) -= dt*den*SQR(Omega_0)*prim(IVZ,k,j,i)*x3*fsmooth;
-          cons(IEN,k,j,i) = dt*Pexp;
+          cons(IEN,k,j,i) = dt*(Pexp/(gammsgas-1.0) + 0.5*rho*v2);
         }
       }
     }
