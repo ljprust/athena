@@ -272,12 +272,12 @@ void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
   Real rad, theta, phi;
   Real x, y, z;
   Real r2_relative;
-  Bool inExp;
+  bool inExp;
   Real tend;
   Real rho, v1, v2, v3, vsq;
 
   tend = tstartexp + dtexp;
-  Bool ininterval = time > tstart && time < tend;
+  bool ininterval = time > tstart && time < tend;
 
   for (int k=pmb->ks; k<=pmb->ke; ++k) {
     for (int j=pmb->js; j<=pmb->je; ++j) {
