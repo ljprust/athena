@@ -81,6 +81,10 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   dvacuum = pin->GetOrAddReal("problem","dvacuum",0.0);
   densgrad = pin->GetOrAddReal("problem","densgrad",0.0);
   Pexp = pin->GetOrAddReal("problem","Pexp",0.0);
+  dexp = pin->GetOrAddReal("problem","dexp",0.0);
+  rexp = pin->GetOrAddReal("problem","rexp",0.0);
+  tstartexp = pin->GetOrAddReal("problem","tstartexp",0.0);
+  dtexp = pin->GetOrAddReal("problem","dtexp",0.0);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
   EnrollUserExplicitSourceFunction(PointExplode);
@@ -269,17 +273,10 @@ void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
   Real x, y, z;
   Real r2_relative;
   Bool inExp;
-  Real rsink, dexp, rexp;
-  Real tstart, dtexp, tend;
+  Real tend;
   Real rho, v1, v2, v3, v2;
 
-  rsink = 0.002;
-  dexp = 10.0*rsink;
-  rexp = 1.0*rsink;
-
-  tstart = 10.0;
-  dtexp = 1.0e-5;
-  tend = tstart + dtexp;
+  tend = tstartexp + dtexp;
   Bool ininterval = time > tstart && time < tend;
 
   for (int k=pmb->ks; k<=pmb->ke; ++k) {
