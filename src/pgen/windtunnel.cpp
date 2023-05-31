@@ -305,7 +305,7 @@ void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
         v2 = v1*v1 + v2*v2 + v3*v3;
         if (NON_BAROTROPIC_EOS && Pexp>0.0 && inExp && ininterval) {
           //cons(IEN,k,j,i) -= dt*den*SQR(Omega_0)*prim(IVZ,k,j,i)*x3*fsmooth;
-          cons(IEN,k,j,i) = dt*(Pexp/(gammsgas-1.0) + 0.5*rho*v2);
+          cons(IEN,k,j,i) = Pexp/(gammsgas-1.0) + 0.5*rho*v2;
         }
       }
     }
