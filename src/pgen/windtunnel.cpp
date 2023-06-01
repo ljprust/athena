@@ -51,7 +51,7 @@ namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
 Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
-bool diode, hydrostatic;
+bool diode, hydrostatic, staticBoundary;
 Real pvacuum, dvacuum, densgrad;
 } // namespace
 
@@ -76,6 +76,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   pvacuum = pin->GetOrAddReal("problem","pvacuum",0.0);
   dvacuum = pin->GetOrAddReal("problem","dvacuum",0.0);
   densgrad = pin->GetOrAddReal("problem","densgrad",0.0);
+  staticBoundary = pin->GetOrAddBoolean("problem","staticBoundary",false);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
   return;
@@ -191,7 +192,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
           pres = p0;
         }
 
-        if (inflow) {
+        if (inflow || staticBoundary) {
           // set half of the outer boundary to upstream conditions
           prim(IDN,k,j,iu+i) =  rho;
           prim(IM1,k,j,iu+i) =  vel0*std::cos(phi); // radial
