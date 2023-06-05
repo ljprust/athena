@@ -51,7 +51,7 @@ namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
 Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
-bool diode, hydrostatic, staticBoundary;
+bool diode, hydrostatic, staticBoundary, expgrad;
 Real pvacuum, dvacuum, densgrad;
 } // namespace
 
@@ -76,6 +76,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   pvacuum = pin->GetOrAddReal("problem","pvacuum",0.0);
   dvacuum = pin->GetOrAddReal("problem","dvacuum",0.0);
   densgrad = pin->GetOrAddReal("problem","densgrad",0.0);
+  expgrad = pin->GetOrAddBoolean("problem","expgrad",0.0);
   staticBoundary = pin->GetOrAddBoolean("problem","staticBoundary",false);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
@@ -115,6 +116,9 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           ratio = 1.0 - (gammagas-1.0)*Minf2/(1.0+semimajor/y);
           rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
           pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
+        } else if (expgrad) {
+          rho = rho0*std::exp(densgrad*y);
+          pres = p0*std:pow( rho0, gammagas-1.0 )*std::exp(densgrad*y*gammagas);
         } else {
           rho = rho0*(1.0-y*densgrad);
           pres = p0;
@@ -187,6 +191,9 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
           ratio = 1.0 - (gammagas-1.0)*Minf2/(1.0+semimajor/y);
           rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
           pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
+        } else if (expgrad) {
+          rho = rho0*std::exp(densgrad*y);
+          pres = p0*std:pow( rho0, gammagas-1.0 )*std::exp(densgrad*y*gammagas);
         } else {
           rho = rho0*(1.0-y*densgrad);
           pres = p0;
