@@ -76,7 +76,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   pvacuum = pin->GetOrAddReal("problem","pvacuum",0.0);
   dvacuum = pin->GetOrAddReal("problem","dvacuum",0.0);
   densgrad = pin->GetOrAddReal("problem","densgrad",0.0);
-  expgrad = pin->GetOrAddBoolean("problem","expgrad",0.0);
+  expgrad = pin->GetOrAddBoolean("problem","expgrad",false);
   staticBoundary = pin->GetOrAddBoolean("problem","staticBoundary",false);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
