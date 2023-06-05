@@ -193,7 +193,7 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
           pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
         } else if (expgrad) {
           rho = rho0*std::exp(densgrad*y);
-          pres = p0*std:pow( rho0, gammagas-1.0 )*std::exp(densgrad*y*gammagas);
+          pres = p0*std::pow( rho0, gammagas-1.0 )*std::exp(densgrad*y*gammagas);
         } else {
           rho = rho0*(1.0-y*densgrad);
           pres = p0;
