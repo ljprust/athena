@@ -30,8 +30,8 @@ import athena_read
 gamma=5.0/3.0
 Pinf = 1.0/gamma # 9109.0
 rhoinf = 1.0 # 6.76e-9
-nfiles = 1
-first = 20
+nfiles = 50
+first = 1
 interval = 1
 fileprefix = 'wt.out1.'
 filesuffix = '.athdf'
@@ -99,11 +99,9 @@ def main(myj,**kwargs):
                                      level=level, return_levels=True)
         elif kwargs['entropy'] :
             entinf    = Pinf*np.power(rhoinf,-gamma)
-            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+            data      = athena_read.athdf(kwargs['data_file'],
                                      level=level)
-            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
-                                     level=level)
-            data['rho'] = datapress['press']*np.power(data['rho'],-gamma)/entinf
+            data['rho'] = data['press']*np.power(data['rho'],-gamma)/entinf
         elif kwargs['enthalpy'] :
             data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
                                      level=level)
@@ -223,6 +221,7 @@ def main(myj,**kwargs):
         else :
             data = athena_read.athdf(kwargs['data_file'], quantities=quantities,
                                      level=level)
+        time = data['Time']
 
     # Extract basic coordinate information
     coordinates = data['Coordinates'].decode('ascii', 'replace')
@@ -492,6 +491,7 @@ def main(myj,**kwargs):
     else :
         cbar.set_label(r'$\rho$ (g/cm$^{3}$)', fontsize=20)
         saveasprefix = 'rho'
+    plt.annotate( r'$t = $' + str(time), xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='white', size=16 )
     if(nfiles>0):
         kwargs['output_file'] = saveasprefix + filename[myj]
     if kwargs['output_file'] == 'show':
