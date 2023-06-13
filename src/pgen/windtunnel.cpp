@@ -356,7 +356,7 @@ void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
           cons(IVX,k,j,i) = 0.0;
           cons(IVY,k,j,i) = 0.0;
           cons(IVZ,k,j,i) = 0.0;
-          if (NON_BAROTROPIC_EOS && Pexp>0.0 && inExp && ininterval) {
+          if (NON_BAROTROPIC_EOS) {
             prim(IEN,k,j,i) = pvacuum;
             cons(IEN,k,j,i) = pvacuum/(gammagas-1.0);
           }
