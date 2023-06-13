@@ -50,6 +50,10 @@ void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
                        const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
                        const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
                        AthenaArray<Real> &cons_scalar);
+void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
+                       const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
+                       const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
+                       AthenaArray<Real> &cons_scalar);
 
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
@@ -57,6 +61,7 @@ void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k)
 Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
 bool diode, hydrostatic;
 Real pvacuum, dvacuum, densgrad, Pexp, dexp, rexp, tstartexp, dtexp;
+Real xvac, yvac, zvac, rvac;
 } // namespace
 
 //========================================================================================
@@ -85,9 +90,14 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   rexp = pin->GetOrAddReal("problem","rexp",0.0);
   tstartexp = pin->GetOrAddReal("problem","tstartexp",0.0);
   dtexp = pin->GetOrAddReal("problem","dtexp",0.0);
+  xvac = pin->GetOrAddReal("problem","xvac",0.0);
+  yvac = pin->GetOrAddReal("problem","yvac",0.0);
+  zvac = pin->GetOrAddReal("problem","zvac",0.0);
+  rvac = pin->GetOrAddReal("problem","rvac",0.0);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
-  EnrollUserExplicitSourceFunction(PointExplode);
+  //EnrollUserExplicitSourceFunction(PointExplode);
+  EnrollUserExplicitSourceFunction(VacuumSource);
   return;
 }
 
@@ -306,6 +316,50 @@ void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
         if (NON_BAROTROPIC_EOS && Pexp>0.0 && inExp && ininterval) {
           //cons(IEN,k,j,i) -= dt*den*SQR(Omega_0)*prim(IVZ,k,j,i)*x3*fsmooth;
           cons(IEN,k,j,i) = Pexp/(gammagas-1.0) + 0.5*rho*vsq;
+        }
+      }
+    }
+  }
+  return;
+}
+
+void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
+                  const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
+                  const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
+                  AthenaArray<Real> &cons_scalar) {
+
+  Real x, y, z;
+  Real r2_relative;
+  bool invac;
+
+  for (int k=pmb->ks; k<=pmb->ke; ++k) {
+    for (int j=pmb->js; j<=pmb->je; ++j) {
+      for (int i=pmb->is; i<=pmb->ie; ++i) {
+        if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
+          x = pmb->pcoord->x1v(i) - xvac;
+          y = pmb->pcoord->x2v(j) - yvac;
+          z = pmb->pcoord->x3v(k) - zvac;
+        } else {
+          std::stringstream msg;
+          msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
+              << "invalid coordinate system" << std::endl;
+          ATHENA_ERROR(msg);
+        }
+        r2_relative = x*x + y*y + z*z;
+        invac = rvac*rvac > r2_relative;
+        if (invac) {
+          prim(IDN,k,j,i) = dvacuum;
+          prim(IVX,k,j,i) = 0.0;
+          prim(IVY,k,j,i) = 0.0;
+          prim(IVZ,k,j,i) = 0.0;
+          cons(IDN,k,j,i) = dvacuum;
+          cons(IVX,k,j,i) = 0.0;
+          cons(IVY,k,j,i) = 0.0;
+          cons(IVZ,k,j,i) = 0.0;
+          if (NON_BAROTROPIC_EOS && Pexp>0.0 && inExp && ininterval) {
+            prim(IEN,k,j,i) = pvacuum;
+            cons(IEN,k,j,i) = pvacuum/(gammagas-1.0);
+          }
         }
       }
     }
