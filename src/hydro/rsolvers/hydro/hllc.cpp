@@ -50,6 +50,9 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
 #pragma distribute_point
   for (int i=il; i<=iu; ++i) {
     //--- Step 1.  Load L/R states into local variables
+
+    // apply flip here
+    
     wli[IDN]=wl(IDN,i);
     wli[IVX]=wl(ivx,i);
     wli[IVY]=wl(ivy,i);
@@ -174,6 +177,8 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     flx(ivy,k,j,i) = flxi[IVY];
     flx(ivz,k,j,i) = flxi[IVZ];
     flx(IEN,k,j,i) = flxi[IEN];
+
+    // zero out boundary cell fluxes here
   }
   return;
 }

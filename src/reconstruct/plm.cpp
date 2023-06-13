@@ -33,6 +33,8 @@ void Reconstruction::PiecewiseLinearX1(
   AthenaArray<Real> &bx = scr01_i_, &wc = scr1_ni_, &dwl = scr2_ni_, &dwr = scr3_ni_,
                    &dwm = scr4_ni_;
 
+  // apply w flip here?
+
   // compute L/R slopes for each variable
   for (int n=0; n<NHYDRO; ++n) {
 #pragma omp simd
