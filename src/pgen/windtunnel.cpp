@@ -42,7 +42,6 @@
 void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                        Real time, Real dt,
                        int il, int iu, int jl, int ju, int kl, int ku, int ngh);
-// vacuum boundary
 void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                        Real time, Real dt,
                        int il, int iu, int jl, int ju, int kl, int ku, int ngh);
@@ -95,7 +94,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   zvac = pin->GetOrAddReal("problem","zvac",0.0);
   rvac = pin->GetOrAddReal("problem","rvac",0.0);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
-  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
+  //EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
   //EnrollUserExplicitSourceFunction(PointExplode);
   EnrollUserExplicitSourceFunction(VacuumSource);
   return;
@@ -242,10 +241,59 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 
 //----------------------------------------------------------------------------------------
 //! \fn void WindTunnel2DInnerX1()
+//  \brief Sets boundary condition on upstream boundary for wind tunnel
+//
+// Quantities at this boundary are held fixed at the constant upstream state
+
+void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  Real rho, pres;
+  Real cs2, Minf2, ratio, y;
+
+  for (int k=kl; k<=ku; ++k) {
+    for (int j=jl; j<=ju; ++j) {
+      for (int i=1;  i<=ngh; ++i) {
+
+        if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
+          y = pco->x2v(iu+i)*std::sin(pco->x1v(j));
+        } else {
+          std::stringstream msg;
+          msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
+              << "invalid coordinate system" << std::endl;
+          ATHENA_ERROR(msg);
+        }
+
+        if (hydrostatic) {
+          cs2 = gammagas*p0/rho0;
+          Minf2 = gmstar/semimajor/cs2; // vel0*vel0/cs2;
+          ratio = 1.0 - (gammagas-1.0)*Minf2/(1.0+semimajor/y);
+          rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
+          pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
+        } else {
+          rho = rho0*(1.0-y*densgrad);
+          pres = p0;
+        }
+
+        // set half of the outer boundary to upstream conditions
+        prim(IDN,k,j,il-i) = rho;
+        prim(IM1,k,j,il-i) = vel0;
+        prim(IM2,k,j,il-i) = 0.0;
+        prim(IM3,k,j,il-i) = 0.0;
+        prim(IEN,k,j,il-i) = pres;
+
+      }
+    }
+  }
+}
+
+//----------------------------------------------------------------------------------------
+//! \fn void WindTunnel2DInnerX1()
 //  \brief Sets vacuum inner boundary
 //
 // Quantities in ghost cells are set to some pressure and density
-
+/*
 void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                   Real time, Real dt,
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
@@ -273,7 +321,7 @@ void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
     }
   }
 }
-
+*/
 void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
                   const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
                   const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
