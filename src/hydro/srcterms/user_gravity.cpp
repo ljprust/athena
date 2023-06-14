@@ -49,12 +49,12 @@ void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
         delPhiy = -gm_point/r/r/r*y;
         delPhiz = -gm_point/r/r/r*z;
 
-        cons(IM1,k,j,i) -= dt*prim(IDN,k,j,i)*delPhix;
-        cons(IM2,k,j,i) -= dt*prim(IDN,k,j,i)*delPhiy;
-        cons(IM3,k,j,i) -= dt*prim(IDN,k,j,i)*delPhiz;
+        cons(IM1,k,j,i) += dt*prim(IDN,k,j,i)*delPhix;
+        cons(IM2,k,j,i) += dt*prim(IDN,k,j,i)*delPhiy;
+        cons(IM3,k,j,i) += dt*prim(IDN,k,j,i)*delPhiz;
 
         if (NON_BAROTROPIC_EOS)
-          cons(IEN,k,j,i) -= dt*0.5*(delPhix*(flux[X1DIR](IDN,k,j,i  )  +
+          cons(IEN,k,j,i) += dt*0.5*(delPhix*(flux[X1DIR](IDN,k,j,i  )  +
                                               flux[X1DIR](IDN,k,j,i+1)) +
                                      delPhiy*(flux[X2DIR](IDN,k,j,i  )  +
                                               flux[X2DIR](IDN,k,j+1,i)) +
