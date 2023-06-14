@@ -68,7 +68,11 @@ HydroSourceTerms::HydroSourceTerms(Hydro *phyd, ParameterInput *pin) {
 
   semimajor = pin->GetOrAddReal("problem","semimajor",0.0);
   gmstar = pin->GetOrAddReal("problem","gm_star",0.0);
-  if (gmstar != 0.0) {
+  gm_point = pin->GetOrAddReal("problem","gm_point",0.0);
+  xvac = pin->GetOrAddReal("problem","xvac",0.0);
+  yvac = pin->GetOrAddReal("problem","yvac",0.0);
+  zvac = pin->GetOrAddReal("problem","zvac",0.0);
+  if (gmstar != 0.0 || gm_point != 0.0) {
     flag_user_gravity_ = true;
     hydro_sourceterms_defined = true;
   }

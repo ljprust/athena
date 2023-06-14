@@ -60,7 +60,7 @@ void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k)
 Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
 bool diode, hydrostatic;
 Real pvacuum, dvacuum, densgrad, Pexp, dexp, rexp, tstartexp, dtexp;
-Real xvac, yvac, zvac, rvac;
+Real xvac, yvac, zvac, rvac, gm_point;
 } // namespace
 
 //========================================================================================
@@ -93,6 +93,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   yvac = pin->GetOrAddReal("problem","yvac",0.0);
   zvac = pin->GetOrAddReal("problem","zvac",0.0);
   rvac = pin->GetOrAddReal("problem","rvac",0.0);
+  gm_point = pin->GetOrAddReal("problem","gm_point",0.0)
   //EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
   //EnrollUserExplicitSourceFunction(PointExplode);

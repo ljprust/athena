@@ -33,6 +33,46 @@ void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
                                    AthenaArray<Real> &cons) {
   MeshBlock *pmb = pmy_hydro_->pmy_block;
   Gravity *pgrav = pmb->pgrav;
+  Real r, x, y, z, delPhix, delPhiy, delPhiz;
+
+  // acceleration in 1-direction
+  for (int k=pmb->ks; k<=pmb->ke; ++k) {
+    for (int j=pmb->js; j<=pmb->je; ++j) {
+#pragma omp simd
+      for (int i=pmb->is; i<=pmb->ie; ++i) {
+
+        x = pmb->pcoord->x1v(i) - xvac;
+        y = pmb->pcoord->x2v(j) - yvac;
+        z = pmb->pcoord->x3v(k) - zvac;
+        r = std::sqrt(x*x + y*y + z*z);
+        delPhix = -gm_point/r/r/r*x;
+        delPhiy = -gm_point/r/r/r*y;
+        delPhiz = -gm_point/r/r/r*z;
+
+        cons(IM1,k,j,i) -= dt*prim(IDN,k,j,i)*delPhix;
+        cons(IM2,k,j,i) -= dt*prim(IDN,k,j,i)*delPhiy;
+        cons(IM3,k,j,i) -= dt*prim(IDN,k,j,i)*delPhiz;
+
+        if (NON_BAROTROPIC_EOS)
+          cons(IEN,k,j,i) -= dt*0.5*(delPhix*(flux[X1DIR](IDN,k,j,i  )  +
+                                              flux[X1DIR](IDN,k,j,i+1)) +
+                                     delPhiy*(flux[X2DIR](IDN,k,j,i  )  +
+                                              flux[X2DIR](IDN,k,j+1,i)) +
+                                     delPhiz*(flux[X3DIR](IDN,k,j,i  )  +
+                                              flux[X3DIR](IDN,k+1,j,i)));
+
+      }
+    }
+  }
+
+  return;
+}
+/*
+void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
+                                   const AthenaArray<Real> &prim,
+                                   AthenaArray<Real> &cons) {
+  MeshBlock *pmb = pmy_hydro_->pmy_block;
+  Gravity *pgrav = pmb->pgrav;
 
   // acceleration in 1-direction
   for (int k=pmb->ks; k<=pmb->ke; ++k) {
@@ -53,30 +93,30 @@ void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
         Real delPhi_r = delPhi*std::sin(theta)*std::cos(phi);
         cons(IM1,k,j,i) -= dt*prim(IDN,k,j,i)*delPhi_r;
         if (NON_BAROTROPIC_EOS)
-          cons(IEN,k,j,i) -= dt*0.5*(flux[X1DIR](IDN,k,j,i  )*delPhi_r + 
+          cons(IEN,k,j,i) -= dt*0.5*(flux[X1DIR](IDN,k,j,i  )*delPhi_r +
                                      flux[X1DIR](IDN,k,j,i+1)*delPhi_r);
-/*
-        Real phic = -gmstar / (semimajor+y);
 
-        Real rL, yL;
-        rL = pmb->pcoord->x1v(i-1);
-        yL = rL*std::sin(theta)*std::cos(phi);
-        Real phiLeft = -gmstar / (semimajor+yL);
+        // Real phic = -gmstar / (semimajor+y);
+        //
+        // Real rL, yL;
+        // rL = pmb->pcoord->x1v(i-1);
+        // yL = rL*std::sin(theta)*std::cos(phi);
+        // Real phiLeft = -gmstar / (semimajor+yL);
+        //
+        // Real rR, yR;
+        // rR = pmb->pcoord->x1v(i+1);
+        // yR = rR*std::sin(theta)*std::cos(phi);
+        // Real phiRight = -gmstar / (semimajor+yR);
+        //
+        // Real phil = 0.5*(phiLeft+phic);
+        // Real phir = 0.5*(phic+phiRight);
+        // cons(IM1,k,j,i) -= dtodx1*prim(IDN,k,j,i)*(phir-phil);
+        // //std::cout << dtodx1*prim(IDN,k,j,i)*(phir-phil) << std::endl;
+        //
+        // if (NON_BAROTROPIC_EOS)
+        //   cons(IEN,k,j,i) -= dtodx1*(flux[X1DIR](IDN,k,j,i  )*(phic - phil) +
+        //                              flux[X1DIR](IDN,k,j,i+1)*(phir - phic));
 
-        Real rR, yR;
-        rR = pmb->pcoord->x1v(i+1);
-        yR = rR*std::sin(theta)*std::cos(phi);
-        Real phiRight = -gmstar / (semimajor+yR);
-
-        Real phil = 0.5*(phiLeft+phic);
-        Real phir = 0.5*(phic+phiRight);
-        cons(IM1,k,j,i) -= dtodx1*prim(IDN,k,j,i)*(phir-phil);
-        //std::cout << dtodx1*prim(IDN,k,j,i)*(phir-phil) << std::endl;
-
-        if (NON_BAROTROPIC_EOS)
-          cons(IEN,k,j,i) -= dtodx1*(flux[X1DIR](IDN,k,j,i  )*(phic - phil) +
-                                     flux[X1DIR](IDN,k,j,i+1)*(phir - phic));
-*/
       }
     }
   }
@@ -104,24 +144,24 @@ void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
           if (NON_BAROTROPIC_EOS)
             cons(IEN,k,j,i) -= dt*0.5*(flux[X2DIR](IDN,k,j  ,i)*delPhi_theta +
                                        flux[X2DIR](IDN,k,j+1,i)*delPhi_theta);
-/*
-          Real thetaL, yL;
-          thetaL = pmb->pcoord->x2v(j-1);
-          yL = r*std::sin(thetaL)*std::cos(phi);
-          Real phiLeft = -gmstar / (semimajor+yL);
 
-          Real thetaR, yR;
-          thetaR = pmb->pcoord->x2v(j+1);
-          yR = r*std::sin(thetaR)*std::cos(phi);
-          Real phiRight = -gmstar / (semimajor+yR);
+          // Real thetaL, yL;
+          // thetaL = pmb->pcoord->x2v(j-1);
+          // yL = r*std::sin(thetaL)*std::cos(phi);
+          // Real phiLeft = -gmstar / (semimajor+yL);
+          //
+          // Real thetaR, yR;
+          // thetaR = pmb->pcoord->x2v(j+1);
+          // yR = r*std::sin(thetaR)*std::cos(phi);
+          // Real phiRight = -gmstar / (semimajor+yR);
+          //
+          // Real phil = 0.5*(phiLeft+phic);
+          // Real phir = 0.5*(phic+phiRight);
+          // cons(IM2,k,j,i) -= dtodx2*prim(IDN,k,j,i)*(phir-phil);
+          // if (NON_BAROTROPIC_EOS)
+          //   cons(IEN,k,j,i) -= dtodx2*(flux[X2DIR](IDN,k,j  ,i)*(phic - phil) +
+          //                              flux[X2DIR](IDN,k,j+1,i)*(phir - phic));
 
-          Real phil = 0.5*(phiLeft+phic);
-          Real phir = 0.5*(phic+phiRight);
-          cons(IM2,k,j,i) -= dtodx2*prim(IDN,k,j,i)*(phir-phil);
-          if (NON_BAROTROPIC_EOS)
-            cons(IEN,k,j,i) -= dtodx2*(flux[X2DIR](IDN,k,j  ,i)*(phic - phil) +
-                                       flux[X2DIR](IDN,k,j+1,i)*(phir - phic));
-*/
         }
       }
     }
@@ -151,24 +191,24 @@ void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
             cons(IEN,k,j,i) -= dt*0.5*(flux[X3DIR](IDN,k  ,j,i)*delPhi_phi +
                                        flux[X3DIR](IDN,k+1,j,i)*delPhi_phi);
 
-/*
-          Real phiL, yL;
-          phiL = pmb->pcoord->x3v(k-1);
-          yL = r*std::sin(theta)*std::cos(phiL);
-          Real phiLeft = -gmstar / (semimajor+yL);
 
-          Real phiR, yR;
-          phiR = pmb->pcoord->x3v(k+1);
-          yR = r*std::sin(theta)*std::cos(phiR);
-          Real phiRight = -gmstar / (semimajor+yR);
+          // Real phiL, yL;
+          // phiL = pmb->pcoord->x3v(k-1);
+          // yL = r*std::sin(theta)*std::cos(phiL);
+          // Real phiLeft = -gmstar / (semimajor+yL);
+          //
+          // Real phiR, yR;
+          // phiR = pmb->pcoord->x3v(k+1);
+          // yR = r*std::sin(theta)*std::cos(phiR);
+          // Real phiRight = -gmstar / (semimajor+yR);
+          //
+          // Real phil = 0.5*(phiLeft+phic);
+          // Real phir = 0.5*(phic+phiRight);
+          // cons(IM3,k,j,i) -= dtodx3*prim(IDN,k,j,i)*(phir-phil);
+          // if (NON_BAROTROPIC_EOS)
+          //   cons(IEN,k,j,i) -= dtodx3*(flux[X3DIR](IDN,k  ,j,i)*(phic - phil) +
+          //                              flux[X3DIR](IDN,k+1,j,i)*(phir - phic));
 
-          Real phil = 0.5*(phiLeft+phic);
-          Real phir = 0.5*(phic+phiRight);
-          cons(IM3,k,j,i) -= dtodx3*prim(IDN,k,j,i)*(phir-phil);
-          if (NON_BAROTROPIC_EOS)
-            cons(IEN,k,j,i) -= dtodx3*(flux[X3DIR](IDN,k  ,j,i)*(phic - phil) +
-                                       flux[X3DIR](IDN,k+1,j,i)*(phir - phic));
-*/
         }
       }
     }
@@ -176,3 +216,4 @@ void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
 
   return;
 }
+*/
