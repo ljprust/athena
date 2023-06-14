@@ -69,6 +69,7 @@ class HydroSourceTerms {
   Hydro *pmy_hydro_;  // ptr to Hydro containing this HydroSourceTerms
   Real gm_;           // GM for point mass MUST BE LOCATED AT ORIGIN
   Real semimajor, gmstar; // GM and orbital separation for user gravity
+  Real gm_point; // GM for point user gravity
   Real g1_, g2_, g3_; // constant acc'n in each direction
   Real Omega_0_, qshear_; // Orbital freq and shear rate
   int  ShBoxCoord_;       // ShearCoordinate type: 1=xy (default), 2=xz
