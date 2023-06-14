@@ -93,7 +93,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   yvac = pin->GetOrAddReal("problem","yvac",0.0);
   zvac = pin->GetOrAddReal("problem","zvac",0.0);
   rvac = pin->GetOrAddReal("problem","rvac",0.0);
-  gm_point = pin->GetOrAddReal("problem","gm_point",0.0)
+  gm_point = pin->GetOrAddReal("problem","gm_point",0.0);
   //EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
   //EnrollUserExplicitSourceFunction(PointExplode);
