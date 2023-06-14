@@ -45,6 +45,18 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                        Real time, Real dt,
                        int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void WindTunnel2DOuterX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                       Real time, Real dt,
+                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void WindTunnel2DInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                       Real time, Real dt,
+                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void WindTunnel2DOuterX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                       Real time, Real dt,
+                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void WindTunnel2DInnerX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                       Real time, Real dt,
+                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
                        const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
                        const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
@@ -94,8 +106,12 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   zvac = pin->GetOrAddReal("problem","zvac",0.0);
   rvac = pin->GetOrAddReal("problem","rvac",0.0);
   gm_point = pin->GetOrAddReal("problem","gm_point",0.0);
-  //EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
+  EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
+  EnrollUserBoundaryFunction(BoundaryFace::outer_x2, WindTunnel2DOuterX2);
+  EnrollUserBoundaryFunction(BoundaryFace::inner_x2, WindTunnel2DInnerX2);
+  EnrollUserBoundaryFunction(BoundaryFace::outer_x3, WindTunnel2DOuterX3);
+  EnrollUserBoundaryFunction(BoundaryFace::inner_x3, WindTunnel2DInnerX3);
   //EnrollUserExplicitSourceFunction(PointExplode);
   EnrollUserExplicitSourceFunction(VacuumSource);
   return;
@@ -171,7 +187,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
 //----------------------------------------------------------------------------------------
 //! \fn void WindTunnel2DOuterX1()
-//  \brief Sets boundary condition on upstream boundary (oib) for wind tunnel
+//  \brief Sets boundary condition on upstream boundary for wind tunnel
 //
 // Quantities at this boundary are held fixed at the constant upstream state
 
@@ -179,60 +195,24 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
                   Real time, Real dt,
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
-  bool inflow, applyDiode;
-  Real phi;
-  Real rho, pres;
-  Real cs2, Minf2, ratio, y;
+  bool applyDiode;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
-        //rad=pco->x1v(iu+i);
-        phi=pco->x2v(j);
-        //z=pco->x3v(k);
-        inflow = phi > 3.14159/2.0 && phi < 3.14159*3.0/2.0;
 
-        if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
-          y = pco->x2v(iu+i)*std::sin(pco->x1v(j));
-        } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
-          y = pco->x1v(iu+i)*std::sin(pco->x2v(j))*std::cos(pco->x3v(k));
-        } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
-          y = pco->x2v(j);
-        }
+        prim(IDN,k,j,iu+i) = prim(IDN,k,j,iu);
+        prim(IM2,k,j,iu+i) = prim(IM2,k,j,iu);
+        prim(IM3,k,j,iu+i) = prim(IM3,k,j,iu);
+        prim(IEN,k,j,iu+i) = prim(IEN,k,j,iu);
 
-        if (hydrostatic) {
-          cs2 = gammagas*p0/rho0;
-          Minf2 = gmstar/semimajor/cs2; // vel0*vel0/cs2;
-          ratio = 1.0 - (gammagas-1.0)*Minf2/(1.0+semimajor/y);
-          rho = rho0*std::pow( ratio, 1.0/(gammagas-1.0) );
-          pres = p0*std::pow( ratio, gammagas/(gammagas-1.0) );
+        // ensure that no gas enters through the outflow boundary
+        // by giving the radial velocity some TLC
+        applyDiode = prim(IM1,k,j,iu) < 0.0;
+        if (diode && applyDiode) {
+          prim(IM1,k,j,iu+i) = 0.0;
         } else {
-          rho = rho0*(1.0-y*densgrad);
-          pres = p0;
-        }
-
-        if (inflow) {
-          // set half of the outer boundary to upstream conditions
-          prim(IDN,k,j,iu+i) =  rho;
-          prim(IM1,k,j,iu+i) =  vel0*std::cos(phi); // radial
-          prim(IM2,k,j,iu+i) = -vel0*std::sin(phi); // azimuth
-          prim(IM3,k,j,iu+i) =  0.0;               // z
-          prim(IEN,k,j,iu+i) =  pres;
-        } else {
-          // the other half lets gas outflow freely
-          prim(IDN,k,j,iu+i) = prim(IDN,k,j,iu);
-          prim(IM2,k,j,iu+i) = prim(IM2,k,j,iu);
-          prim(IM3,k,j,iu+i) = prim(IM3,k,j,iu);
-          prim(IEN,k,j,iu+i) = prim(IEN,k,j,iu);
-
-          // ensure that no gas enters through the outflow boundary
-          // by giving the radial velocity some TLC
-          applyDiode = prim(IM1,k,j,iu) < 0.0;
-          if (diode && applyDiode) {
-            prim(IM1,k,j,iu+i) = 0.0;
-          } else {
-            prim(IM1,k,j,iu+i) = prim(IM1,k,j,iu);
-          }
+          prim(IM1,k,j,iu+i) = prim(IM1,k,j,iu);
         }
 
       }
@@ -290,39 +270,137 @@ void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 }
 
 //----------------------------------------------------------------------------------------
-//! \fn void WindTunnel2DInnerX1()
-//  \brief Sets vacuum inner boundary
-//
-// Quantities in ghost cells are set to some pressure and density
-/*
-void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+//! \fn void WindTunnel2DOuterX2()
+//  \brief Sets boundary condition on outflow boundary for wind tunnel
+
+void WindTunnel2DOuterX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                   Real time, Real dt,
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
-  Real rho, pres;
-
-  if ( pvacuum==0.0 || dvacuum==0.0 ) {
-    std::stringstream msg;
-    msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
-        << "vacuum pressure and/or density not set" << std::endl;
-    ATHENA_ERROR(msg);
-  }
+  bool applyDiode;
 
   for (int k=kl; k<=ku; ++k) {
-    for (int j=jl; j<=ju; ++j) {
-      for (int i=1;  i<=ngh; ++i) {
+    for (int j=1; j<=ngh; ++j) {
+      for (int i=il; i<=iu; ++i) {
 
-        prim(IDN,k,j,il-i) = dvacuum;
-        prim(IM1,k,j,il-i) = 0.0;
-        prim(IM2,k,j,il-i) = 0.0;
-        prim(IM3,k,j,il-i) = 0.0;
-        prim(IEN,k,j,il-i) = pvacuum;
+        prim(IDN,k,ju+j,i) = prim(IDN,k,ju,i);
+        prim(IM1,k,ju+j,i) = prim(IM1,k,ju,i);
+        prim(IM3,k,ju+j,i) = prim(IM3,k,ju,i);
+        prim(IEN,k,ju+j,i) = prim(IEN,k,ju,i);
+
+        // ensure that no gas enters through the outflow boundary
+        // by giving the radial velocity some TLC
+        applyDiode = prim(IM2,k,ju,i) < 0.0;
+        if (diode && applyDiode) {
+          prim(IM2,k,ju+j,i) = 0.0;
+        } else {
+          prim(IM2,k,ju+j,i) = prim(IM2,k,ju,i);
+        }
 
       }
     }
   }
 }
-*/
+
+//----------------------------------------------------------------------------------------
+//! \fn void WindTunnel2DInnerX2()
+//  \brief Sets boundary condition on outflow boundary for wind tunnel
+
+void WindTunnel2DInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  bool applyDiode;
+
+  for (int k=kl; k<=ku; ++k) {
+    for (int j=1; j<=ngh; ++j) {
+      for (int i=il; i<=iu; ++i) {
+
+        prim(IDN,k,jl-j,i) = prim(IDN,k,jl,i);
+        prim(IM1,k,jl-j,i) = prim(IM1,k,jl,i);
+        prim(IM3,k,jl-j,i) = prim(IM3,k,jl,i);
+        prim(IEN,k,jl-j,i) = prim(IEN,k,jl,i);
+
+        // ensure that no gas enters through the outflow boundary
+        // by giving the radial velocity some TLC
+        applyDiode = prim(IM2,k,jl,i) > 0.0;
+        if (diode && applyDiode) {
+          prim(IM2,k,jl-j,i) = 0.0;
+        } else {
+          prim(IM2,k,jl-j,i) = prim(IM2,k,jl,i);
+        }
+
+      }
+    }
+  }
+}
+
+//----------------------------------------------------------------------------------------
+//! \fn void WindTunnel2DOuterX3()
+//  \brief Sets boundary condition on outflow boundary for wind tunnel
+
+void WindTunnel2DOuterX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  bool applyDiode;
+
+  for (int k=1; k<=ngh; ++k) {
+    for (int j=jl; j<=ju; ++j) {
+      for (int i=il; i<=iu; ++i) {
+
+        prim(IDN,ku+k,j,i) = prim(IDN,ku,j,i);
+        prim(IM1,ku+k,j,i) = prim(IM1,ku,j,i);
+        prim(IM2,ku+k,j,i) = prim(IM2,ku,j,i);
+        prim(IEN,ku+k,j,i) = prim(IEN,ku,j,i);
+
+        // ensure that no gas enters through the outflow boundary
+        // by giving the radial velocity some TLC
+        applyDiode = prim(IM3,ku,j,i) < 0.0;
+        if (diode && applyDiode) {
+          prim(IM3,ku+k,j,i) = 0.0;
+        } else {
+          prim(IM3,ku+k,j,i) = prim(IM3,ku,j,i);
+        }
+
+      }
+    }
+  }
+}
+
+//----------------------------------------------------------------------------------------
+//! \fn void WindTunnel2DInnerX3()
+//  \brief Sets boundary condition on outflow boundary for wind tunnel
+
+void WindTunnel2DInnerX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  bool applyDiode;
+
+  for (int k=1; k<=ngh; ++k) {
+    for (int j=jl; j<=ju; ++j) {
+      for (int i=il; i<=iu; ++i) {
+
+        prim(IDN,kl-k,j,i) = prim(IDN,kl,j,i);
+        prim(IM1,kl-k,j,i) = prim(IM1,kl,j,i);
+        prim(IM2,kl-k,j,i) = prim(IM2,kl,j,i);
+        prim(IEN,kl-k,j,i) = prim(IEN,kl,j,i);
+
+        // ensure that no gas enters through the outflow boundary
+        // by giving the radial velocity some TLC
+        applyDiode = prim(IM3,kl,j,i) > 0.0;
+        if (diode && applyDiode) {
+          prim(IM3,kl-k,j,i) = 0.0;
+        } else {
+          prim(IM3,kl-k,j,i) = prim(IM3,kl,j,i);
+        }
+
+      }
+    }
+  }
+}
+
 void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
                   const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
                   const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
