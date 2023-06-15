@@ -341,7 +341,7 @@ bool Coordinates::IsBoundaryCell(const int k, const int j, const int i) {
   dy = x2v(j)-yc;
   dz = x3v(k)-zc;
 
-  r2 = x*x + y*y + z*z;
+  r2 = dx*dx + dy*dy + dz*dz;
   isBound = r2 < rbound*rbound;
 
   return isBound;

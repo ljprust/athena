@@ -45,6 +45,8 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
   }
   Real gm1 = gamma - 1.0;
   Real igm1 = 1.0/gm1;
+  Coordinates *pco = pmy_block_->pcoord;
+  bool isBound, isBoundLeft, isBoundRight;
 
 #pragma omp simd private(wli,wri,flxi,fl,fr)
 #pragma distribute_point
@@ -52,7 +54,7 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     //--- Step 1.  Load L/R states into local variables
 
     // apply flip here
-    
+
     wli[IDN]=wl(IDN,i);
     wli[IVX]=wl(ivx,i);
     wli[IVY]=wl(ivy,i);
@@ -64,6 +66,24 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     wri[IVY]=wr(ivy,i);
     wri[IVZ]=wr(ivz,i);
     wri[IPR]=wr(IPR,i);
+
+    isBound      = pco->IsBoundaryCell(k,j,i  );
+    isBoundLeft  = pco->IsBoundaryCell(k,j,i-1);
+    isBoundRight = pco->IsBoundaryCell(k,j,i+1);
+    if (isBoundLeft && !isBound) {
+      wli[IDN]=wr(IDN,i);
+      wli[IVX]=-wr(ivx,i);
+      wli[IVY]=wr(ivy,i);
+      wli[IVZ]=wr(ivz,i);
+      wli[IPR]=wr(IPR,i);
+    }
+    if (isBoundRight && !isBound) {
+      wri[IDN]=wl(IDN,i);
+      wri[IVX]=-wl(ivx,i);
+      wri[IVY]=wl(ivy,i);
+      wri[IVZ]=wl(ivz,i);
+      wri[IPR]=wl(IPR,i);
+    }
 
     //--- Step 2.  Compute middle state estimates with PVRS (Toro 10.5.2)
 
@@ -179,6 +199,13 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     flx(IEN,k,j,i) = flxi[IEN];
 
     // zero out boundary cell fluxes here
+    if (isBound) {
+      flx(IDN,k,j,i) = 0.0;
+      flx(ivx,k,j,i) = 0.0;
+      flx(ivy,k,j,i) = 0.0;
+      flx(ivz,k,j,i) = 0.0;
+      flx(IEN,k,j,i) = 0.0;
+    }
   }
   return;
 }
