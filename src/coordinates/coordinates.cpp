@@ -322,6 +322,47 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
 
 
 //----------------------------------------------------------------------------------------
+// IsBoundaryCell: determine if a cell comprises the boundary based
+// on its position relative to the boundary center
+
+bool Coordinates::IsBoundaryCell(const int k, const int j, const int i) {
+#pragma omp simd
+  Real xc, yc, zc, rbound;
+  Real dx, dy, dz;
+  Real r2;
+  bool isBound;
+
+  xc = 0.0;
+  yc = 0.0;
+  zc = 0.0;
+  rbound = 1.0;
+
+  dx = x1v(i)-xc;
+  dy = x2v(j)-yc;
+  dz = x3v(k)-zc;
+
+  r2 = x*x + y*y + z*z;
+  isBound = r2 < rbound*rbound;
+
+  return isBound;
+}
+
+/*
+//----------------------------------------------------------------------------------------
+// IsBoundaryFace: determine if a cell neighbors a boundary cell
+
+bool Coordinates::IsBoundaryFace(const int kleft,  const int jleft,  const int ileft,
+                                 const int kright, const int jright, const int iright) {
+#pragma omp simd
+  bool isBoundFaceLeft, isBoundFaceRight;
+
+  isBoundFaceLeft =
+
+  return isBound;
+}
+*/
+
+//----------------------------------------------------------------------------------------
 // EdgeXLength functions: compute physical length at cell edge-X as vector
 // Edge1(i,j,k) located at (i,j-1/2,k-1/2), i.e. (x1v(i), x2f(j), x3f(k))
 

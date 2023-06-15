@@ -50,6 +50,10 @@ class Coordinates {
   AthenaArray<bool> boundaryFlag;
 
   // functions...
+  // ...to identify boundary cells and faces
+  virtual bool IsBoundaryCell(const int k, const int j, const int i);
+  //virtual bool IsBoundaryFace(const int kleft,  const int jleft,  const int ileft,
+  //                            const int kright, const int jright, const int iright);
   // ...to compute length of edges
   virtual void Edge1Length(const int k, const int j, const int il, const int iu,
                            AthenaArray<Real> &len);

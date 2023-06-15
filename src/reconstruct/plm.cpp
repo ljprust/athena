@@ -33,14 +33,37 @@ void Reconstruction::PiecewiseLinearX1(
   AthenaArray<Real> &bx = scr01_i_, &wc = scr1_ni_, &dwl = scr2_ni_, &dwr = scr3_ni_,
                    &dwm = scr4_ni_;
 
-  // apply w flip here?
+  bool isBound, isBoundLeft, isBoundRight;
 
   // compute L/R slopes for each variable
   for (int n=0; n<NHYDRO; ++n) {
 #pragma omp simd
     for (int i=il; i<=iu; ++i) {
-      dwl(n,i) = (w(n,k,j,i  ) - w(n,k,j,i-1));
-      dwr(n,i) = (w(n,k,j,i+1) - w(n,k,j,i  ));
+      isBound      = pco->IsBoundaryCell(k,j,i  );
+      isBoundLeft  = pco->IsBoundaryCell(k,j,i-1);
+      isBoundRight = pco->IsBoundaryCell(k,j,i+1);
+
+      if (isBoundLeft) {
+        dwl(IDN,i) =  w(IDN,k,j,i) - w(IDN,k,j,i);
+        dwl(IVX,i) =  w(IVX,k,j,i) + w(IVX,k,j,i);
+        dwl(IVY,i) =  w(IVY,k,j,i) - w(IVY,k,j,i);
+        dwl(IVZ,i) =  w(IVZ,k,j,i) - w(IVZ,k,j,i);
+        dwl(IEN,i) =  w(IEN,k,j,i) - w(IEN,k,j,i);
+      } else {
+        dwl(n,i) = (w(n,k,j,i  ) - w(n,k,j,i-1));
+      }
+      if (isBoundRight) {
+        dwr(IDN,i) =  w(IDN,k,j,i) - w(IDN,k,j,i);
+        dwr(IVX,i) = -w(IVX,k,j,i) - w(IVX,k,j,i);
+        dwr(IVY,i) =  w(IVY,k,j,i) - w(IVY,k,j,i);
+        dwr(IVZ,i) =  w(IVZ,k,j,i) - w(IVZ,k,j,i);
+        dwr(IEN,i) =  w(IEN,k,j,i) - w(IEN,k,j,i);
+      } else {
+        dwr(n,i) = (w(n,k,j,i+1) - w(n,k,j,i  ));
+      }
+
+      //dwl(n,i) = (w(n,k,j,i  ) - w(n,k,j,i-1));
+      //dwr(n,i) = (w(n,k,j,i+1) - w(n,k,j,i  ));
       wc(n,i) = w(n,k,j,i);
     }
   }
