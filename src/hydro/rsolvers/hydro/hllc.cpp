@@ -53,8 +53,6 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
   for (int i=il; i<=iu; ++i) {
     //--- Step 1.  Load L/R states into local variables
 
-    // apply flip here
-
     wli[IDN]=wl(IDN,i);
     wli[IVX]=wl(ivx,i);
     wli[IVY]=wl(ivy,i);
@@ -70,14 +68,14 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     //isBound      = pco->IsBoundaryCell(k,j,i  );
     isBoundLeft  = pco->IsBoundaryCell(k,j,i-1);
     isBoundRight = pco->IsBoundaryCell(k,j,i  );
-    if (isBoundLeft && !isBound) {
+    if (isBoundLeft) {
       wli[IDN]=wr(IDN,i);
       wli[IVX]=-wr(ivx,i);
       wli[IVY]=wr(ivy,i);
       wli[IVZ]=wr(ivz,i);
       wli[IPR]=wr(IPR,i);
     }
-    if (isBoundRight && !isBound) {
+    if (isBoundRight) {
       wri[IDN]=wl(IDN,i);
       wri[IVX]=-wl(ivx,i);
       wri[IVY]=wl(ivy,i);
@@ -205,6 +203,9 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
       flx(ivy,k,j,i) = 0.0;
       flx(ivz,k,j,i) = 0.0;
       flx(IEN,k,j,i) = 0.0;
+    }
+    if (!isBoundLeft && isBoundRight) {
+      cout << flx(IDN,k,j,i) << flx(ivx,k,j,i) << flx(ivy,k,j,i) << flx(ivz,k,j,i) << flx(IEN,k,j,i);
     }
   }
   return;
