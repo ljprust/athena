@@ -204,9 +204,15 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
       flx(ivz,k,j,i) = 0.0;
       flx(IEN,k,j,i) = 0.0;
     }
-    if (!isBoundLeft && isBoundRight) {
-      cout << flx(IDN,k,j,i) << flx(ivx,k,j,i) << flx(ivy,k,j,i) << flx(ivz,k,j,i) << flx(IEN,k,j,i);
+/*
+    if (!isBoundLeft || isBoundRight) {
+      std::cout << flx(IDN,k,j,i) << std::endl;
+      std::cout << flx(ivx,k,j,i) << std::endl;
+      std::cout << flx(ivy,k,j,i) << std::endl;
+      std::cout << flx(ivz,k,j,i) << std::endl;
+      std::cout << flx(IEN,k,j,i) << std::endl;
     }
+*/
   }
   return;
 }

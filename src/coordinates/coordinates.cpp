@@ -331,11 +331,22 @@ bool Coordinates::IsBoundaryCell(const int k, const int j, const int i) {
   Real dx, dy, dz;
   Real r2;
   bool isBound;
+  bool piston, sphere;
 
-  xc = 0.25;
-  yc = 0.0;
-  zc = 0.0;
-  rbound = 0.1;
+  piston = true;
+  sphere = false;
+
+  if (piston) {
+    xc = 2.5;
+    yc = 0.0;
+    zc = 0.0;
+    rbound = 0.5;
+  } else if (sphere) {
+    xc = 0.0;
+    yc = 0.0;
+    zc = 0.0;
+    rbound = 1.0;
+  }
 
   dx = x1v(i)-xc;
   dy = x2v(j)-yc;
