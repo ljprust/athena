@@ -45,7 +45,7 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
   }
   Real gm1 = gamma - 1.0;
   Real igm1 = 1.0/gm1;
-  Coordinates *pco = pmy_block_->pcoord;
+  Coordinates *pco = pmy_block->pcoord;
   bool isBound, isBoundLeft, isBoundRight;
 
 #pragma omp simd private(wli,wri,flxi,fl,fr)
@@ -67,9 +67,9 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     wri[IVZ]=wr(ivz,i);
     wri[IPR]=wr(IPR,i);
 
-    isBound      = pco->IsBoundaryCell(k,j,i  );
+    //isBound      = pco->IsBoundaryCell(k,j,i  );
     isBoundLeft  = pco->IsBoundaryCell(k,j,i-1);
-    isBoundRight = pco->IsBoundaryCell(k,j,i+1);
+    isBoundRight = pco->IsBoundaryCell(k,j,i  );
     if (isBoundLeft && !isBound) {
       wli[IDN]=wr(IDN,i);
       wli[IVX]=-wr(ivx,i);
@@ -199,7 +199,7 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     flx(IEN,k,j,i) = flxi[IEN];
 
     // zero out boundary cell fluxes here
-    if (isBound) {
+    if (isBoundLeft && isBoundRight) {
       flx(IDN,k,j,i) = 0.0;
       flx(ivx,k,j,i) = 0.0;
       flx(ivy,k,j,i) = 0.0;
