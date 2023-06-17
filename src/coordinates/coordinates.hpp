@@ -48,6 +48,11 @@ class Coordinates {
 
   // boundary flag array
   AthenaArray<bool> boundaryFlag;
+  // parameters for boundary
+  static Real boundary_center_x;
+  static Real boundary_center_y;
+  static Real boundary_center_z;
+  static Real boundary_radius;
 
   // functions...
   // ...to identify boundary cells and faces

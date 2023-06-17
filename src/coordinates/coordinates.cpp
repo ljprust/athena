@@ -28,6 +28,12 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
   RegionSize& mesh_size  = pmy_block->pmy_mesh->mesh_size;
   RegionSize& block_size = pmy_block->block_size;
 
+  // put boundary parameters in static variables
+  Coordinates::boundary_center_x = pin->GetOrAddReal("problem","boundary_center_x",0.0);
+  Coordinates::boundary_center_y = pin->GetOrAddReal("problem","boundary_center_y",0.0);
+  Coordinates::boundary_center_z = pin->GetOrAddReal("problem","boundary_center_z",0.0);
+  Coordinates::boundary_radius   = pin->GetOrAddReal("problem","boundary_radius"  ,0.0);
+
   // Set indices
   if (coarse_flag) {
     il = pmb->cis; jl = pmb->cjs; kl = pmb->cks;
@@ -320,6 +326,10 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
   }
 }
 
+Real Coordinates::boundary_center_x = 0.0;
+Real Coordinates::boundary_center_y = 0.0;
+Real Coordinates::boundary_center_z = 0.0;
+Real Coordinates::boundary_radius   = 0.0;
 
 //----------------------------------------------------------------------------------------
 // IsBoundaryCell: determine if a cell comprises the boundary based
@@ -327,12 +337,12 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
 
 bool Coordinates::IsBoundaryCell(const int k, const int j, const int i) {
 #pragma omp simd
-  Real xc, yc, zc, rbound;
+  //Real xc, yc, zc, rbound;
   Real dx, dy, dz;
   Real r2;
   bool isBound;
-  bool piston, sphere;
-
+  //bool piston, sphere;
+/*
   piston = true;
   sphere = false;
 
@@ -347,13 +357,13 @@ bool Coordinates::IsBoundaryCell(const int k, const int j, const int i) {
     zc = 0.0;
     rbound = 1.0;
   }
-
-  dx = x1v(i)-xc;
-  dy = x2v(j)-yc;
-  dz = x3v(k)-zc;
+*/
+  dx = x1v(i)-Coordinates::boundary_center_x;
+  dy = x2v(j)-Coordinates::boundary_center_y;
+  dz = x3v(k)-Coordinates::boundary_center_z;
 
   r2 = dx*dx + dy*dy + dz*dz;
-  isBound = r2 < rbound*rbound;
+  isBound = r2 < SQR(Coordinates::boundary_radius);
 
   return isBound;
 }
