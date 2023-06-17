@@ -29,10 +29,10 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
   RegionSize& block_size = pmy_block->block_size;
 
   // put boundary parameters in static variables
-  Coordinates::boundary_center_x = pin->GetOrAddReal("problem","boundary_center_x",0.0);
-  Coordinates::boundary_center_y = pin->GetOrAddReal("problem","boundary_center_y",0.0);
-  Coordinates::boundary_center_z = pin->GetOrAddReal("problem","boundary_center_z",0.0);
-  Coordinates::boundary_radius   = pin->GetOrAddReal("problem","boundary_radius"  ,0.0);
+  Coordinates::boundary_center_x1 = pin->GetOrAddReal("problem","boundary_center_x1",0.0);
+  Coordinates::boundary_center_x2 = pin->GetOrAddReal("problem","boundary_center_x2",0.0);
+  Coordinates::boundary_center_x3 = pin->GetOrAddReal("problem","boundary_center_x3",0.0);
+  Coordinates::boundary_radius    = pin->GetOrAddReal("problem","boundary_radius"  ,0.0);
 
   // Set indices
   if (coarse_flag) {
@@ -326,10 +326,11 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
   }
 }
 
-Real Coordinates::boundary_center_x = 0.0;
-Real Coordinates::boundary_center_y = 0.0;
-Real Coordinates::boundary_center_z = 0.0;
-Real Coordinates::boundary_radius   = 0.0;
+// initialize static variables for boundary
+Real Coordinates::boundary_center_x1 = 0.0;
+Real Coordinates::boundary_center_x2 = 0.0;
+Real Coordinates::boundary_center_x3 = 0.0;
+Real Coordinates::boundary_radius    = 0.0;
 
 //----------------------------------------------------------------------------------------
 // IsBoundaryCell: determine if a cell comprises the boundary based
@@ -337,51 +338,44 @@ Real Coordinates::boundary_radius   = 0.0;
 
 bool Coordinates::IsBoundaryCell(const int k, const int j, const int i) {
 #pragma omp simd
-  //Real xc, yc, zc, rbound;
-  Real dx, dy, dz;
-  Real r2;
+  Real dist;
   bool isBound;
-  //bool piston, sphere;
-/*
-  piston = true;
-  sphere = false;
-
-  if (piston) {
-    xc = 2.5;
-    yc = 0.0;
-    zc = 0.0;
-    rbound = 0.5;
-  } else if (sphere) {
-    xc = 0.0;
-    yc = 0.0;
-    zc = 0.0;
-    rbound = 1.0;
-  }
-*/
-  dx = x1v(i)-Coordinates::boundary_center_x;
-  dy = x2v(j)-Coordinates::boundary_center_y;
-  dz = x3v(k)-Coordinates::boundary_center_z;
-
-  r2 = dx*dx + dy*dy + dz*dz;
-  isBound = r2 < SQR(Coordinates::boundary_radius);
-
+  dist = Distance(Coordinates::boundary_center_x1,
+                  Coordinates::boundary_center_x2,
+                  Coordinates::boundary_center_x3,
+                  x1v(i),
+                  x2v(j),
+                  x3v(k));
+  isBound = dist < Coordinates::boundary_radius;
   return isBound;
 }
 
-/*
+
 //----------------------------------------------------------------------------------------
-// IsBoundaryFace: determine if a cell neighbors a boundary cell
+// Distance: get the distance between two points
 
-bool Coordinates::IsBoundaryFace(const int kleft,  const int jleft,  const int ileft,
-                                 const int kright, const int jright, const int iright) {
+Real Coordinates::Distance(Real x1a, Real x2a, Real x3a, Real x1b, Real x2b, Real x3b) {
 #pragma omp simd
-  bool isBoundFaceLeft, isBoundFaceRight;
+  Real dx1, dx2, dx3, r;
 
-  isBoundFaceLeft =
+  if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
+    dx1 = x1a - x1b;
+    dx2 = x2a - x2b;
+    dx3 = x3a - x3b;
+  } else if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) { // r, phi, z
+    dx1 = x1a*std::cos(x2a) - x1b*std::cos(x2b);
+    dx2 = x1a*std::sin(x2a) - x1b*std::sin(x2b);
+    dx3 = x3a - x3b;
+  } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) { // r, theta, phi
+    dx1 = x1a*std::sin(x2a)*std::cos(x3a) - x1b*std::sin(x2b)*std::cos(x3b);
+    dx2 = x1a*std::sin(x2a)*std::sin(x3a) - x1b*std::sin(x2b)*std::sin(x3b);
+    dx3 = x1a*std::cos(x2a) - x1b*std::cos(x2b);
+  }
+  r = std::sqrt(dx1*dx1 + dx2*dx2 + dx3*dx3);
 
-  return isBound;
+  return r;
 }
-*/
+
 
 //----------------------------------------------------------------------------------------
 // EdgeXLength functions: compute physical length at cell edge-X as vector

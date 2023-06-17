@@ -49,14 +49,15 @@ class Coordinates {
   // boundary flag array
   AthenaArray<bool> boundaryFlag;
   // parameters for boundary
-  static Real boundary_center_x;
-  static Real boundary_center_y;
-  static Real boundary_center_z;
+  static Real boundary_center_x1;
+  static Real boundary_center_x2;
+  static Real boundary_center_x3;
   static Real boundary_radius;
 
   // functions...
   // ...to identify boundary cells and faces
   virtual bool IsBoundaryCell(const int k, const int j, const int i);
+  virtual Real Distance(Real x1a, Real x2a, Real x3a, Real x1b, Real x2b, Real x3b);
   //virtual bool IsBoundaryFace(const int kleft,  const int jleft,  const int ileft,
   //                            const int kright, const int jright, const int iright);
   // ...to compute length of edges
