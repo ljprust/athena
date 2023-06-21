@@ -238,7 +238,7 @@ void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
       for (int i=1;  i<=ngh; ++i) {
 
         if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
-          y = pco->x2v(iu+i)*std::sin(pco->x1v(j));
+          y = pco->x2v(j);
         } else {
           std::stringstream msg;
           msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
