@@ -30,8 +30,8 @@ import athena_read
 gamma=5.0/3.0
 Pinf = 1.0/gamma # 9109.0
 rhoinf = 1.0 # 6.76e-9
-nfiles = 50
-first = 1
+nfiles = 1
+first = 15
 interval = 1
 fileprefix = 'wt.out1.'
 filesuffix = '.athdf'
@@ -466,8 +466,8 @@ def main(myj,**kwargs):
             plt.xlabel(r'$x/R$', fontsize=20)
             plt.ylabel(r'$y/R$', fontsize=20)
         else:
-            plt.xlabel(r'$x/R$', fontsize=20)
-            plt.ylabel(r'$z/R$', fontsize=20)
+            plt.xlabel(r'$x/R_{A}$', fontsize=20)
+            plt.ylabel(r'$z/R_{A}$', fontsize=20)
     cbar = plt.colorbar(im, shrink=0.8)
     if kwargs['entropy'] :
         cbar.set_label(r'$\sigma/\sigma_{\infty}$', fontsize=20)
@@ -491,7 +491,7 @@ def main(myj,**kwargs):
     else :
         cbar.set_label(r'$\rho$ (g/cm$^{3}$)', fontsize=20)
         saveasprefix = 'rho'
-    plt.annotate( r'$t = $' + str(time), xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='white', size=16 )
+    plt.annotate( r'$t = $' + str(time) + r' $R_{A}/c_{s}$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='black', size=16 )
     if(nfiles>0):
         kwargs['output_file'] = saveasprefix + filename[myj]
     if kwargs['output_file'] == 'show':
