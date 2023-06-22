@@ -141,7 +141,7 @@ void HydroSourceTerms::AddSourceTerms(const Real time, const Real dt,
     PointMass(dt, flux, prim, cons);
 
   if (flag_user_gravity_)
-    UserGravity(dt, flux, prim, cons);
+    UserGravity(dt, time, flux, prim, cons);
 
   // constant acceleration (e.g. for RT instability)
   if (g1_ != 0.0 || g2_ != 0.0 || g3_ != 0.0)

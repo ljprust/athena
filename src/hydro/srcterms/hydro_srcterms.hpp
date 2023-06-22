@@ -46,7 +46,7 @@ class HydroSourceTerms {
                       AthenaArray<Real> &cons_scalar);
   void PointMass(const Real dt, const AthenaArray<Real> *flx,const AthenaArray<Real> &p,
                  AthenaArray<Real> &c);
-  void UserGravity(const Real dt,const AthenaArray<Real> *flux,
+  void UserGravity(const Real dt, const Real time, const AthenaArray<Real> *flux,
                    const AthenaArray<Real> &prim,
                    AthenaArray<Real> &cons);
   void ConstantAcceleration(const Real dt, const AthenaArray<Real> *flx,

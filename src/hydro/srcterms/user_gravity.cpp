@@ -28,7 +28,8 @@
 //! source, which has GM = gmstar. Assumes the direction of gravity is constant
 //! but not the magnitude.
 
-void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
+void HydroSourceTerms::UserGravity(const Real dt, const Real time,
+                                   const AthenaArray<Real> *flux,
                                    const AthenaArray<Real> &prim,
                                    AthenaArray<Real> &cons) {
   MeshBlock *pmb = pmy_hydro_->pmy_block;
@@ -68,7 +69,8 @@ void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
   return;
 }
 /*
-void HydroSourceTerms::UserGravity(const Real dt,const AthenaArray<Real> *flux,
+void HydroSourceTerms::UserGravity(const Real dt, const Real time,
+                                   const AthenaArray<Real> *flux,
                                    const AthenaArray<Real> &prim,
                                    AthenaArray<Real> &cons) {
   MeshBlock *pmb = pmy_hydro_->pmy_block;
