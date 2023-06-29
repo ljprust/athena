@@ -1,0 +1,79 @@
+<comment>
+problem   = wind tunnel in cylindrical coordinates
+reference =
+configure = --prob=sn --coord=spherical_polar
+
+<job>
+problem_id  = sn      # problem ID: basename of output filenames
+
+<output1>
+file_type   = hdf5       # VTK data dump
+variable    = prim      #
+dt          = 0.1    # time increment between outputs
+cartesian_vector = false
+
+<time>
+cfl_number  = 0.3       # The Courant, Friedrichs, & Lewy (CFL) Number
+nlim        = -1        # cycle limit
+tlim        = 10.0      # time limit
+integrator  = vl2       # time integration algorithm
+xorder      = 2         # order of spatial reconstruction
+ncycle_out  = 1         # interval for stdout summary info
+
+<mesh>
+nx1         = 800             # Number of zones in X1-direction
+x1min       = 2.0e-3            # minimum value of X1
+x1max       = 16.0            # maximum value of X1
+ix1_bc      = reflecting           # Inner-X1 boundary condition flag
+ox1_bc      = user           # Outer-X1 boundary condition flag
+#x1rat       = 1.01 # 1.0219         # non-uniform grid ratio
+
+nx2         = 40            # Number of zones in X2-direction
+x2min       = 0.             # minimum value of X2
+x2max       = 0.5 # 3.141592653589793 # 6.2831853071795862   # maximum value of X2
+ix2_bc      = polar       # Inner-X2 boundary condition flag
+ox2_bc      = periodic       # Outer-X2 boundary condition flag
+
+nx3         = 10              # Number of zones in X3-direction
+x3min       = 0.0           # minimum value of X3
+x3max       = 6.2831853071795862            # maximum value of X3
+ix3_bc      = periodic       # Inner-X3 boundary condition flag
+ox3_bc      = periodic       # Outer-X3 boundary condition flag
+
+#refinement  = static
+
+#<refinement1>
+#x1min = 1.0
+#x1max = 2.0
+#x2min = 0.0
+#x2max = 3.141592653589793
+#x3min = 0.0
+#x3max = 6.2831853071795862
+#level = 2
+
+#<refinement2>
+#x1min = 2.0
+#x1max = 4.0
+#x2min = 0.0
+#x2max = 3.141592653589793
+#x3min = 0.0
+#x3max = 6.2831853071795862
+#level = 1
+
+<meshblock>
+nx1 = 20
+nx2 = 40
+nx3 = 5
+
+<hydro>
+gamma = 1.66666667
+
+<problem>
+rho0    = 1.0
+p0      = 0.6
+diode   = true
+Rejecta = 1.0
+Eejecta = 1.0
+Mejecta = 1.0
+vmax    = 1.0
+
