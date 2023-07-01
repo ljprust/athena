@@ -70,7 +70,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   Mej      = pin->GetOrAddReal("problem","Mejecta",1.0);
   vmax     = pin->GetOrAddReal("problem","vmax",1.0);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, SNOuterX1);
-  //EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
+  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   return;
 }
 
@@ -81,10 +81,10 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
-Real r, t0, v0, v, rho, pres;
+Real r, t0, v0sq, v, rho, pres;
 
 t0 = Rej/vmax;
-v0 = std::sqrt(4.0/3.0*Eej/Mej);
+v0sq = 4.0/3.0*Eej/Mej;
 
   //  Initialize density and momenta
   for (int k=ks; k<=ke; ++k) {
@@ -96,7 +96,7 @@ v0 = std::sqrt(4.0/3.0*Eej/Mej);
         phydro->u(IM2,k,j,i) = 0.0;
         phydro->u(IM3,k,j,i) = 0.0;
 
-        if (r > Rej) {
+        if (r > Rej || true) {
           // ambient medium
           phydro->u(IDN,k,j,i) = rho0;
           phydro->u(IM1,k,j,i) = 0.0;
@@ -105,7 +105,7 @@ v0 = std::sqrt(4.0/3.0*Eej/Mej);
           // ejecta profile
           v = vmax*r/Rej;
           rho = std::pow(3.0/4.0/3.14159/Eej,1.5)*std::pow(Mej,2.5)
-                *std::exp(-v*v/v0/v0)/t0/t0/t0;
+                *std::exp(-v*v/v0sq)/t0/t0/t0;
           pres = std::pow(rho,gammagas);
           phydro->u(IDN,k,j,i) = rho;
           phydro->u(IM1,k,j,i) = v;
@@ -160,13 +160,20 @@ void SNOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
 void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                Real time, Real dt,
                int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
-/*
-  Real rho, pres;
 
-  if ( pvacuum==0.0 || dvacuum==0.0 ) {
+  Real rho, vel, v0sq, pres, prefactor, t0;
+
+  t0 = Rej/vmax;
+  v0sq = 4.0/3.0*Eej/Mej;
+  vel = 1.0/(time/Rej + 1.0/vmax);
+  prefactor = std::pow(3.0/4.0/3.14159/Eej,1.5)*std::pow(Mej,2.5);
+  rho = prefactor*std::exp(-vel*vel/v0sq)*std::pow(time+t0,-3.0);
+  pres = std::pow(rho,gammagas);
+
+  if ( Rej==0.0 || Eej==0.0 || Mej==0.0 || vmax==0.0 ) {
     std::stringstream msg;
-    msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
-        << "vacuum pressure and/or density not set" << std::endl;
+    msg << "### FATAL ERROR in sn.cpp ProblemGenerator" << std::endl
+        << "ejecta parameters not set" << std::endl;
     ATHENA_ERROR(msg);
   }
 
@@ -174,16 +181,15 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
 
-        prim(IDN,k,j,il-i) = dvacuum;
-        prim(IM1,k,j,il-i) = 0.0;
+        prim(IDN,k,j,il-i) = rho;
+        prim(IM1,k,j,il-i) = vel;
         prim(IM2,k,j,il-i) = 0.0;
         prim(IM3,k,j,il-i) = 0.0;
-        prim(IEN,k,j,il-i) = pvacuum;
+        prim(IEN,k,j,il-i) = pres;
 
       }
     }
   }
-*/
 }
 
 //namespace {}
