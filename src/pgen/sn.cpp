@@ -37,11 +37,11 @@
 #error "This problem generator does not support magnetic fields"
 #endif
 
-// inflow/outflow BCs
+// outflow condition with diode
 void SNOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                Real time, Real dt,
                int il, int iu, int jl, int ju, int kl, int ku, int ngh);
-// vacuum boundary
+// inject SN ejecta
 void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                Real time, Real dt,
                int il, int iu, int jl, int ju, int kl, int ku, int ngh);
@@ -60,15 +60,21 @@ Real Rej, Eej, Mej, vmax;
 //! functions in this file.  Called in Mesh constructor.
 //========================================================================================
 
+// read parameters from input file
 void Mesh::InitUserMeshData(ParameterInput *pin) {
+  // ambient medium properties
   rho0     = pin->GetOrAddReal("problem","rho0",1.0);
   p0       = pin->GetOrAddReal("problem","p0",1.0);
+  // gamma law for gas
   gammagas = pin->GetOrAddReal("hydro","gamma",0.0);
+  // use diode condition for outflow
   diode    = pin->GetOrAddBoolean("problem","diode",false);
+  // properties of ejecta
   Rej      = pin->GetOrAddReal("problem","Rejecta",1.0);
   Eej      = pin->GetOrAddReal("problem","Eejecta",1.0);
   Mej      = pin->GetOrAddReal("problem","Mejecta",1.0);
   vmax     = pin->GetOrAddReal("problem","vmax",1.0);
+  // tell athena to use our user-defined boundaries
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, SNOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   return;
