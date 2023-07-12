@@ -110,6 +110,11 @@ class MeshBlock {
   Reconstruction *precon;
   MeshRefinement *pmr;
 
+  // force on reflective boundary
+  static Real boundaryForceX1;
+  static Real boundaryForceX2;
+  static Real boundaryForceX3;
+
   // physics-related objects (possibly containing their derived bvals classes)
   Hydro *phydro;
   Field *pfield;

@@ -75,7 +75,7 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
       isBoundLeft  = pco->IsBoundaryCell(k-1,j,i);
       isBoundRight = pco->IsBoundaryCell(k  ,j,i);
     }
-    
+
     if (isBoundLeft) {
       wli[IDN]=wr(IDN,i);
       wli[IVX]=-wr(ivx,i);
@@ -212,6 +212,28 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
       flx(ivz,k,j,i) = 0.0;
       flx(IEN,k,j,i) = 0.0;
     }
+
+    // update force on boundary
+    if (ivx==1) {
+      if (isBoundLeft) {
+        pmy_block->boundaryForceX1 -= flx(ivx,k,j,i);
+      } else if (isBoundRight) {
+        pmy_block->boundaryForceX1 += flx(ivx,k,j,i);
+      }
+    } else if (ivx==2) {
+      if (isBoundLeft) {
+        pmy_block->boundaryForceX2 -= flx(ivx,k,j,i);
+      } else if (isBoundRight) {
+        pmy_block->boundaryForceX2 += flx(ivx,k,j,i);
+      }
+    } else {
+      if (isBoundLeft) {
+        pmy_block->boundaryForceX3 -= flx(ivx,k,j,i);
+      } else if (isBoundRight) {
+        pmy_block->boundaryForceX3 += flx(ivx,k,j,i);
+      }
+    }
+
 /*
     if (!isBoundLeft && isBoundRight) {
       std::cout << flx(IDN,k,j,i) << std::endl;
