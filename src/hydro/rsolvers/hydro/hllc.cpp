@@ -216,21 +216,21 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     // update force on boundary
     if (ivx==1) {
       if (isBoundLeft) {
-        pmy_block->boundaryForceX1 -= flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(IVX,k,j,i) -= flx(ivx,k,j,i);
       } else if (isBoundRight) {
-        pmy_block->boundaryForceX1 += flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(IVX,k,j,i) += flx(ivx,k,j,i);
       }
     } else if (ivx==2) {
       if (isBoundLeft) {
-        pmy_block->boundaryForceX2 -= flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(IVY,k,j,i) -= flx(ivx,k,j,i);
       } else if (isBoundRight) {
-        pmy_block->boundaryForceX2 += flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(IVY,k,j,i) += flx(ivx,k,j,i);
       }
     } else {
       if (isBoundLeft) {
-        pmy_block->boundaryForceX3 -= flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(IVZ,k,j,i) -= flx(ivx,k,j,i);
       } else if (isBoundRight) {
-        pmy_block->boundaryForceX3 += flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(IVZ,k,j,i) += flx(ivx,k,j,i);
       }
     }
 

@@ -48,6 +48,8 @@ class Coordinates {
 
   // boundary flag array
   AthenaArray<bool> boundaryFlag;
+  // forces exerted on boundary
+  AthenaArray<Real> forceOnBoundary;
   // parameters for boundary
   static Real boundary_center_x1;
   static Real boundary_center_x2;
