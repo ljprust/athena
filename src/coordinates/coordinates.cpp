@@ -63,6 +63,9 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
   x2f.NewAthenaArray(nc2+1);
   x3f.NewAthenaArray(nc3+1);
 
+  // allocate array for forces on boundary
+  forceOnBoundary.NewAthenaArray(3, nc3, nc2, nc1);
+
   // allocate arrays for volume- and face-centered geometry coefficients of cells
   // (only for spherical-polar, cylindrical, cartesian coordinates, for now)
   if (!GENERAL_RELATIVITY) { // exclude: minkowski, gr_user, schwarzschild, kerr-schild

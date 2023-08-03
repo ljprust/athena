@@ -46,8 +46,6 @@ class Coordinates {
   AthenaArray<Real> h2f, dh2fd1, h31f, h32f, dh31fd1, dh32fd2;
   AthenaArray<Real> h2v, dh2vd1, h31v, h32v, dh31vd1, dh32vd2;
 
-  // boundary flag array
-  AthenaArray<bool> boundaryFlag;
   // forces exerted on boundary
   AthenaArray<Real> forceOnBoundary;
   // parameters for boundary

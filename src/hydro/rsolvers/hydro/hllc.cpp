@@ -214,35 +214,40 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     }
 
     // update force on boundary
+    Real area;
     if (ivx==1) {
+      area = pmy_block->pcoord->GetFace1Area(k,j,i);
       if (isBoundLeft) {
-        pmy_block->pcoord->forceOnBoundary(IVX,k,j,i) -= flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(0,k,j,i) = -flx(ivx,k,j,i)*area;
       } else if (isBoundRight) {
-        pmy_block->pcoord->forceOnBoundary(IVX,k,j,i) += flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(0,k,j,i) =  flx(ivx,k,j,i)*area;
       }
     } else if (ivx==2) {
+      area = pmy_block->pcoord->GetFace2Area(k,j,i);
       if (isBoundLeft) {
-        pmy_block->pcoord->forceOnBoundary(IVY,k,j,i) -= flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(1,k,j,i) = -flx(ivx,k,j,i)*area;
       } else if (isBoundRight) {
-        pmy_block->pcoord->forceOnBoundary(IVY,k,j,i) += flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(1,k,j,i) =  flx(ivx,k,j,i)*area;
       }
     } else {
+      area = pmy_block->pcoord->GetFace3Area(k,j,i);
       if (isBoundLeft) {
-        pmy_block->pcoord->forceOnBoundary(IVZ,k,j,i) -= flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(2,k,j,i) = -flx(ivx,k,j,i)*area;
       } else if (isBoundRight) {
-        pmy_block->pcoord->forceOnBoundary(IVZ,k,j,i) += flx(ivx,k,j,i);
+        pmy_block->pcoord->forceOnBoundary(2,k,j,i) =  flx(ivx,k,j,i)*area;
       }
     }
 
-/*
+    /*
     if (!isBoundLeft && isBoundRight) {
+      std::cout << pmy_block->pcoord->forceOnBoundary(0,k,j,i) << std::endl;
       std::cout << flx(IDN,k,j,i) << std::endl;
       std::cout << flx(ivx,k,j,i) << std::endl;
       std::cout << flx(ivy,k,j,i) << std::endl;
       std::cout << flx(ivz,k,j,i) << std::endl;
       std::cout << flx(IEN,k,j,i) << std::endl;
     }
-*/
+    */
   }
   return;
 }

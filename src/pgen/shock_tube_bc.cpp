@@ -49,13 +49,13 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   vzIn   = pin->GetReal("problem","wl");
   presIn = pin->GetReal("problem","pl");
 
-  EnrollUserBoundaryFunction(BoundaryFace::outer_x1, OuterX1);
+  //EnrollUserBoundaryFunction(BoundaryFace::outer_x1, OuterX1);
   return;
 }
 
 void MeshBlock::InitUserMeshBlockData(ParameterInput *pin)
 {
-  AllocateUserOutputVariables(2);
+  AllocateUserOutputVariables(3);
   return;
 }
 
@@ -64,15 +64,9 @@ void MeshBlock::UserWorkBeforeOutput(ParameterInput *pin)
   for(int k=ks; k<=ke; k++) {
     for(int j=js; j<=je; j++) {
       for(int i=is; i<=ie; i++) {
-        user_out_var(0,k,j,i) = pcoord->forceOnBoundary(IVX,k,j,i);
-        user_out_var(1,k,j,i) = pcoord->forceOnBoundary(IVY,k,j,i);
-        user_out_var(2,k,j,i) = pcoord->forceOnBoundary(IVZ,k,j,i);
-
-        pcoord->forceOnBoundary(IDN,k,j,i) = 0.0;
-        pcoord->forceOnBoundary(IVX,k,j,i) = 0.0;
-        pcoord->forceOnBoundary(IVY,k,j,i) = 0.0;
-        pcoord->forceOnBoundary(IVZ,k,j,i) = 0.0;
-        pcoord->forceOnBoundary(IEN,k,j,i) = 0.0;
+        user_out_var(0,k,j,i) = pcoord->forceOnBoundary(0,k,j,i);
+        user_out_var(1,k,j,i) = pcoord->forceOnBoundary(1,k,j,i);
+        user_out_var(2,k,j,i) = pcoord->forceOnBoundary(2,k,j,i);
       }
     }
   }

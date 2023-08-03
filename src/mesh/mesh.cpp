@@ -57,11 +57,6 @@
 #include <mpi.h>
 #endif
 
-// initialize boundary force
-Real MeshBlock::boundaryForceX1 = 0.0;
-Real MeshBlock::boundaryForceX2 = 0.0;
-Real MeshBlock::boundaryForceX3 = 0.0;
-
 //----------------------------------------------------------------------------------------
 //! Mesh constructor, builds mesh at start of calculation using parameters in input file
 
