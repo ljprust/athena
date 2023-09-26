@@ -46,13 +46,17 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                        Real time, Real dt,
                        int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
+                       const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
+                       const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
+                       AthenaArray<Real> &cons_scalar);
 
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
 Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
 bool diode, hydrostatic, staticBoundary, expgrad;
-Real pvacuum, dvacuum, densgrad;
+Real pvacuum, dvacuum, densgrad, rvacuum;
 } // namespace
 
 //========================================================================================
@@ -78,8 +82,10 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   densgrad = pin->GetOrAddReal("problem","densgrad",0.0);
   expgrad = pin->GetOrAddBoolean("problem","expgrad",false);
   staticBoundary = pin->GetOrAddBoolean("problem","staticBoundary",false);
+  rvacuum = pin->GetOrAddReal("problem","rvacuum",0.0);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
+  EnrollUserExplicitSourceFunction(VacuumSource);
   return;
 }
 
@@ -260,6 +266,41 @@ void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
       }
     }
   }
+}
+
+void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
+                  const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
+                  const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
+                  AthenaArray<Real> &cons_scalar) {
+
+  Real r;
+  bool invac;
+
+  for (int k=pmb->ks; k<=pmb->ke; ++k) {
+    for (int j=pmb->js; j<=pmb->je; ++j) {
+      for (int i=pmb->is; i<=pmb->ie; ++i) {
+        if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
+          r = pmb->pcoord->x1v(i);
+        } else {
+          std::stringstream msg;
+          msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
+              << "invalid coordinate system" << std::endl;
+          ATHENA_ERROR(msg);
+        }
+        invac = rvacuum > r;
+        if (invac) {
+          cons(IDN,k,j,i) = dvacuum;
+          cons(IVX,k,j,i) = 0.0;
+          cons(IVY,k,j,i) = 0.0;
+          cons(IVZ,k,j,i) = 0.0;
+          if (NON_BAROTROPIC_EOS) {
+            cons(IEN,k,j,i) = pvacuum/(gammagas-1.0);
+          }
+        }
+      }
+    }
+  }
+  return;
 }
 
 namespace {
