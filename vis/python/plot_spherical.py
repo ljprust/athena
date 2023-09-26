@@ -27,11 +27,12 @@ import numpy as np
 
 # Athena++ modules
 import athena_read
-gamma=5.0/3.0
+
+gamma= 5.0/3.0
 Pinf = 1.0/gamma # 9109.0
 rhoinf = 1.0 # 6.76e-9
 nfiles = 1
-first = 15
+first = 50
 interval = 1
 fileprefix = 'wt.out1.'
 filesuffix = '.athdf'
@@ -201,6 +202,13 @@ def main(myj,**kwargs):
             
             v2 = datavel1['vel1']*datavel1['vel1']+datavel2['vel2']*datavel2['vel2']+datavel3['vel3']*datavel3['vel3']
             data['rho'] = np.sqrt(v2/cs2)
+        elif kwargs['cs'] :
+            data      = athena_read.athdf(kwargs['data_file'], quantities=quantities,
+                                     level=level)
+            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
+                                     level=level)
+            cs2 = gamma*datapress['press']/data['rho']
+            data['rho'] = np.sqrt(cs2)
             '''
             elif kwargs['vorticity'] :
                 data = athena_read.athdf(kwargs['data_file'], quantities=['vel1','vel2','vel3'], level=level)
@@ -438,8 +446,10 @@ def main(myj,**kwargs):
     plt.ylim((-r_max/kwargs['lscale'], r_max/kwargs['lscale']))
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
-    circle = plt.Circle((0.0,0.0), 0.002, fc='None', ec='k', lw=1.0)
+    circle = plt.Circle((0.0,0.0), 0.02, fc='None', ec='k', lw=1.0)
+    circle2 = plt.Circle((0.0,0.0), 0.04245, fc='None', ec='k', lw=2.0, linestyle='--')
     plt.gca().add_patch(circle)
+    plt.gca().add_patch(circle2)
     #plt.set_cmap('inferno')
     if kwargs['stream'] is not None:
         with warnings.catch_warnings():
@@ -463,8 +473,8 @@ def main(myj,**kwargs):
             plt.ylabel(r'$\log_{10}(r)\ z / r$', fontsize=20)
     else:
         if kwargs['midplane']:
-            plt.xlabel(r'$x/R$', fontsize=20)
-            plt.ylabel(r'$y/R$', fontsize=20)
+            plt.xlabel(r'$x/R_{A}$', fontsize=20)
+            plt.ylabel(r'$y/R_{A}$', fontsize=20)
         else:
             plt.xlabel(r'$x/R_{A}$', fontsize=20)
             plt.ylabel(r'$z/R_{A}$', fontsize=20)
@@ -475,6 +485,9 @@ def main(myj,**kwargs):
     elif kwargs['mach'] :
         cbar.set_label(r'$\mathcal{M}$', fontsize=20)
         saveasprefix = 'mach'
+    elif kwargs['cs'] :
+        cbar.set_label(r'$c_{s}$', fontsize=20)
+        saveasprefix = 'cs'
     elif kwargs['head'] :
         cbar.set_label(r'$B$ (ergs)', fontsize=20)
         #cbar.set_ticks([7.4e12,7.6e12,7.8e12,8.0e12])
@@ -491,7 +504,8 @@ def main(myj,**kwargs):
     else :
         cbar.set_label(r'$\rho$ (g/cm$^{3}$)', fontsize=20)
         saveasprefix = 'rho'
-    plt.annotate( r'$t = $' + str(time) + r' $R_{A}/c_{s}$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='black', size=16 )
+    #plt.annotate( r'$t = $' + str(time) + r' $R_{A}/c_{s}$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='white', size=16 )
+    #plt.annotate( r'$\eta=10,\mathcal{M}=4$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='white', size=20 )
     if(nfiles>0):
         kwargs['output_file'] = saveasprefix + filename[myj]
     if kwargs['output_file'] == 'show':
@@ -603,6 +617,9 @@ if __name__ == '__main__':
     parser.add_argument('--vorticity',
                         action='store_true',
                         help=('plot vorticity'))
+    parser.add_argument('--cs',
+                        action='store_true',
+                        help=('plot sound speed'))
     parser.add_argument('--gm',
                         type=float,
                         default=0.0,
