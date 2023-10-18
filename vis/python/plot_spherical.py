@@ -30,8 +30,8 @@ import athena_read
 gamma=5.0/3.0
 Pinf = 1.0/gamma # 9109.0
 rhoinf = 1.0 # 6.76e-9
-nfiles = 50
-first = 1
+nfiles = 1
+first = 50
 interval = 1
 fileprefix = 'wt.out1.'
 filesuffix = '.athdf'
@@ -137,17 +137,9 @@ def main(myj,**kwargs):
                                      level=level)
             data['rho'] = 0.5*(datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']) - kwargs['gm']/r + datapress['press']*gamma/(gamma-1.0)/data['rho']
         elif kwargs['bernoulli'] :
-            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+            data      = athena_read.athdf(kwargs['data_file'],
                                      level=level)
-            datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
-                                     level=level)
-            datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
-                                     level=level)
-            datavel2 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz2'],
-                                     level=level)
-            datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz3'],
-                                     level=level)
-            data['rho'] = 0.5*data['rho']*(datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']) + datapress['press']
+            data['rho'] = 0.5*data['rho']*(data['vel_xyz1']*data['vel_xyz1']+data['vel_xyz2']*data['vel_xyz2']+data['vel_xyz3']*data['vel_xyz3']) + data['press']
         elif kwargs['energy'] :
             data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
                                      level=level)
@@ -163,7 +155,7 @@ def main(myj,**kwargs):
                                      level=level)
             data['rho'] = 0.5*(datavel1['vel_xyz1']*datavel1['vel_xyz1']+datavel2['vel_xyz2']*datavel2['vel_xyz2']+datavel3['vel_xyz3']*datavel3['vel_xyz3']) + datapress['press']/(gamma-1.0)/data['rho']
         elif kwargs['kinetic'] :
-            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
+            data      = athena_read.athdf(kwargs['data_file'], quantities=['rho','vel1','vel2','vel3'],
                                      level=level)
             datavel1 = athena_read.athdf(kwargs['data_file'], quantities=['vel_xyz1'],
                                      level=level)
@@ -430,16 +422,17 @@ def main(myj,**kwargs):
         norm = colors.Normalize()
 
     # Make plot
-    plt.figure(figsize=[10.0,10.0])
+    plt.figure(figsize=[10.0,10.0]) # [10.0,10.0])
     im = plt.pcolormesh(y_grid/kwargs['lscale'], x_grid/kwargs['lscale'], vals, cmap=cmap, vmin=vmin, vmax=vmax, norm=norm)
     #cont = plt.contour(y_grid[0:-1,0:-1], x_grid[0:-1,0:-1], vals, 1, colors='k',origin='lower')
     plt.gca().set_aspect('equal')
     plt.xlim((-r_max/kwargs['lscale']+kwargs['xoffset'], r_max/kwargs['lscale']+kwargs['xoffset']))
     plt.ylim((-r_max/kwargs['lscale'], r_max/kwargs['lscale']))
-    plt.xticks(fontsize=15)
-    plt.yticks(fontsize=15)
-    circle = plt.Circle((0.0,0.0), 0.002, fc='None', ec='k', lw=1.0)
-    plt.gca().add_patch(circle)
+    plt.xticks(fontsize=15) # 15)
+    plt.yticks(fontsize=15) # 15)
+    circle = plt.Circle((0.0,0.0), 0.1, fc='None', ec='k', lw=1.0)
+    #circle = plt.Circle((0.0,0.0), 0.002, fc='k', ec='k', lw=1.0)
+    #plt.gca().add_patch(circle)
     #plt.set_cmap('inferno')
     if kwargs['stream'] is not None:
         with warnings.catch_warnings():
@@ -453,7 +446,7 @@ def main(myj,**kwargs):
                                density=kwargs['stream_density'], color='k')
             else:
                 plt.streamplot(z_stream/kwargs['lscale']+kwargs['xoffset'], x_stream/kwargs['lscale']-kwargs['xoffset'], vals_z.T, vals_x.T,
-                               density=kwargs['stream_density'], color='k')
+                               density=kwargs['stream_density'], color='k') #, linewidth=4, arrowsize=3)
     if kwargs['logr']:
         if kwargs['midplane']:
             plt.xlabel(r'$\log_{10}(r)\ x / r$', fontsize=20)
@@ -466,9 +459,10 @@ def main(myj,**kwargs):
             plt.xlabel(r'$x/R$', fontsize=20)
             plt.ylabel(r'$y/R$', fontsize=20)
         else:
-            plt.xlabel(r'$x/R$', fontsize=20)
-            plt.ylabel(r'$z/R$', fontsize=20)
+            plt.xlabel(r'$x$ $/$ $R_{A}$', fontsize=20) # 20
+            plt.ylabel(r'$z$ $/$ $R_{A}$', fontsize=20) # 20
     cbar = plt.colorbar(im, shrink=0.8)
+    #cbar.ax.tick_params(labelsize=30)
     if kwargs['entropy'] :
         cbar.set_label(r'$\sigma/\sigma_{\infty}$', fontsize=20)
         saveasprefix = 'ent'
@@ -482,6 +476,9 @@ def main(myj,**kwargs):
     elif kwargs['enthalpy'] :
         cbar.set_label(r'$h$ (ergs)', fontsize=20)
         saveasprefix = 'enth'
+    elif kwargs['kinetic'] :
+        cbar.set_label(r'Specific Kinetic Energy $/$ $c_{s}^{2}$', fontsize=20) # 20
+        saveasprefix = 'kinetic'
     elif kwargs['quantity'] == 'press' :
         cbar.set_label(r'$P$ (baryes)', fontsize=20)
         saveasprefix = 'pres'
@@ -491,7 +488,7 @@ def main(myj,**kwargs):
     else :
         cbar.set_label(r'$\rho$ (g/cm$^{3}$)', fontsize=20)
         saveasprefix = 'rho'
-    plt.annotate( r'$t = $' + str(time), xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='white', size=16 )
+    plt.annotate( r'$t = $' + str(time)[0:4] + r' $R_{A}/c_{s}$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='white', size=16 ) # 16
     if(nfiles>0):
         kwargs['output_file'] = saveasprefix + filename[myj]
     if kwargs['output_file'] == 'show':
