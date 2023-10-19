@@ -18,7 +18,7 @@
 
       contains
 
-      subroutine mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20) 
+      subroutine mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
          implicit none
          integer, pointer, dimension(:) :: net_iso, chem_id
          double precision, intent(in) :: X, Y, Z
@@ -38,12 +38,12 @@
          xa(:) = 0.
          xa(h1) = X
          xa(he4) = Y
-         if( use_solar .eq. 1) then 
+         if( use_solar .eq. 1) then
             xa(c12) = Z * Zfrac_C
             xa(n14) = Z * Zfrac_N
             xa(o16) = Z * Zfrac_O
             xa(ne20) = Z * Zfrac_Ne
-         else 
+         else
             xa(c12) = Z * fc12
             xa(n14) = Z * fn14
             xa(o16) = Z * fo16
@@ -68,7 +68,7 @@
          double precision, intent(out) :: T, press, gamma
          double precision :: Pgas,log10Rho, Prad
          double precision :: dlnT_dlnE_c_Rho, dlnT_dlnd_c_E, dlnPgas_dlnE_c_Rho, dlnPgas_dlnd_c_E
-         double precision, dimension(num_eos_basic_results) :: res, d_dlnRho_const_T, 
+         double precision, dimension(num_eos_basic_results) :: res, d_dlnRho_const_T,
      >                       d_dlnT_const_Rho, d_dabar_const_TRho, d_dzbar_const_TRho
          integer :: ierr
          double precision :: log10T
@@ -89,17 +89,17 @@
      >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
      >         sumx, dabar_dx, dzbar_dx, dmc_dx)
 
-         T = T_guess 
+         T = T_guess
 
          ! get a set of results for given energy and density
-         call eosDE_get( 
-     >         handle, Z, X, abar, zbar, 
-     >         species, chem_id, net_iso, xa, 
-     >         energy, log10_cr(energy), Rho, log10_cr(Rho), log10_cr(T_guess), 
-     >         T, log10T, res, d_dlnRho_const_T, d_dlnT_const_Rho, 
-     >         d_dabar_const_TRho, d_dzbar_const_TRho, 
-     >         dlnT_dlnE_c_Rho, dlnT_dlnd_c_E, 
-     >         dlnPgas_dlnE_c_Rho, dlnPgas_dlnd_c_E, 
+         call eosDE_get(
+     >         handle, Z, X, abar, zbar,
+     >         species, chem_id, net_iso, xa,
+     >         energy, log10_cr(energy), Rho, log10_cr(Rho), log10_cr(T_guess),
+     >         T, log10T, res, d_dlnRho_const_T, d_dlnT_const_Rho,
+     >         d_dabar_const_TRho, d_dzbar_const_TRho,
+     >         dlnT_dlnE_c_Rho, dlnT_dlnd_c_E,
+     >         dlnPgas_dlnE_c_Rho, dlnPgas_dlnd_c_E,
      >         ierr)
 
          ! the indices for the results are defined in eos_def.f
@@ -131,10 +131,10 @@
          double precision, intent(in) :: fc12, fn14, fo16, fne20
 
 
-         double precision, intent(in) :: Rho, T, Xin, Zin 
+         double precision, intent(in) :: Rho, T, Xin, Zin
          double precision, intent(out) :: energy, press, gamma
          double precision :: Pgas, log10Rho, Prad
-         double precision, dimension(num_eos_basic_results) :: res,d_dlnd, d_dlnT, d_dabar, d_dzbar 
+         double precision, dimension(num_eos_basic_results) :: res,d_dlnd, d_dlnT, d_dabar, d_dzbar
          integer :: ierr
          double precision :: log10T
 
@@ -156,11 +156,11 @@
 
          ! get a set of results for given energy and density
          call eosDT_get(
-     >         handle, Z, X, abar, zbar, 
+     >         handle, Z, X, abar, zbar,
      >         species, chem_id, net_iso, xa,
-     >         Rho, log10_cr(Rho), T, log10_cr(T), 
+     >         Rho, log10_cr(Rho), T, log10_cr(T),
      >         res, d_dlnd, d_dlnT, d_dabar, d_dzbar, ierr)
-         
+
          ! the indices for the results are defined in eos_def.f
          Prad = crad*T*T*T*T
          Pgas = exp_cr(res(i_lnPgas))
@@ -177,7 +177,76 @@
 
       end subroutine mesaeos_DTget
 
-
+C      subroutine mesaeos_get_T_given_Ptotal( Rho, T_guess, Xin, Zin, use_solar, fc12, fn14, fo16, fne20, T, press, gamma) bind(c)
+C         implicit none
+C
+C         double precision :: X, Y, Z, abar, zbar, z2bar, ye
+C         integer, pointer, dimension(:) :: net_iso, chem_id
+C         double precision :: xa(species)
+C         integer :: max_iter
+C         double precision :: logT_tol, logP_tol, logT_bnd1, logT_bnd2
+C         double precision :: logP_at_bnd1, logP_at_bnd2
+C
+C         integer, intent(in) :: use_solar
+C         double precision, intent(in) :: fc12, fn14, fo16, fne20
+C
+C         double precision, intent(in) :: Rho, T_guess, Xin, Zin, press
+C         double precision, intent(out) :: T, gamma
+C         double precision :: Pgas,log10Rho, Prad
+C         double precision :: dlnT_dlnE_c_Rho, dlnT_dlnd_c_E, dlnPgas_dlnE_c_Rho, dlnPgas_dlnd_c_E
+C         double precision, dimension(num_eos_basic_results) :: res, d_dlnRho_const_T,
+C     >                       d_dlnT_const_Rho, d_dabar_const_TRho, d_dzbar_const_TRho
+C         integer :: ierr
+C         double precision :: log10T
+C
+C         double precision :: xz, frac, dabar_dx(species), dzbar_dx(species), sumx,
+C     >         mass_correction, dmc_dx(species)
+C
+C
+C         allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
+C         if (ierr /= 0) stop 'allocate failed'
+C         X = Xin
+C         Z = Zin
+C         Y = 1 - (X + Z)
+C
+C         call mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
+C
+C         call composition_info(
+C     >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
+C     >         sumx, dabar_dx, dzbar_dx, dmc_dx)
+C
+C         max_iter = 100
+C         logT_tol = 1.0
+C         logP_tol = 1.0
+C         logT_bnd1 = log10_cr(T_guess/10.0)
+C         logT_bnd2 = log10_cr(T_guess*10.0)
+C         logP_at_bnd1 = log10_cr(press/10.0)
+C         logP_at_bnd2 = log10_cr(press*10.0)
+C
+C         call eosDT_get_T_given_Ptotal(
+C     >         handle, Z, X, abar, zbar,
+C     >         species, chem_id, net_iso, xa,
+C     >         log10_cr(Rho), log10_cr(press), logT_tol, logP_tol, max_iter, log10_cf(T_guess),
+C     >         logT_bnd1, logT_bnd2, logP_at_bnd1, logP_at_bnd2,
+C     >         T, res, d_dlnRho_const_T, d_dlnT_const_Rho,
+C     >         d_dabar_const_TRho, d_dzbar_const_TRho, eos_calls, ierr)
+C
+    ! T = 10.0**T
+C
+        ! the indices for the results are defined in eos_def.f
+C         gamma = res(i_gamma1)
+C         if( gamma < 1.) then
+C            write(*,*) "gamma is < 1)" , Prad, Pgas, Rho, T, gamma
+C         endif
+C         deallocate(net_iso, chem_id)
+C
+C         if (ierr /= 0) then
+C            write(*,*) 'bad result from mesaeos_get_T_given_Ptotal'
+C            write(*,*) rho, T_guess, Xin, Zin
+C            stop 1
+C         end if
+C
+C      end subroutine mesaeos_get_T_given_Ptotal
 
       subroutine mesaeos_init( input_string) bind(c)
          use iso_c_binding, only: C_CHAR, c_null_char
@@ -240,7 +309,7 @@
             write(*,*) 'failed calling eos_ptr'
             stop
          end if
-       
+
          rq% use_eosDT2 = .false.
 
 
@@ -251,5 +320,5 @@
          call free_eos_handle(handle)
          call eos_shutdown
       end subroutine mesaeos_shutdown
-      
+
       end module mesaeos_lib

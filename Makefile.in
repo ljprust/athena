@@ -20,14 +20,26 @@ LDFLAGS := @LINKER_FLAGS@
 LDLIBS := @LIBRARY_FLAGS@
 GCOV_CMD := @GCOV_COMMAND@
 
-LDLIBS_FORTRAN := -L$(MESA_DIR)/lib -leos -lchem -linterp_2d -linterp_1d -lnum -lf2crlibm -lcrlibm -lmtx -lconst -lutils -lmesalapack -lmesablas -openmp
-LDLIBS_FORTRAN += -lgfortran
+# for C compilation of mesaeos_lib object
+LDLIBS_MESA := -L$(MESA_DIR)/lib -leos -lchem -linterp_2d -linterp_1d -lnum -lf2crlibm -lcrlibm -lmtx -lconst -lutils -lmesalapack -lmesablas -openmp
+LDLIBS_MESA += -lgfortran
+
+# MESA flags for fortran build
+mesa_flags := -Wno-uninitialized -fno-range-check -fmax-errors=12 \
+	-fprotect-parens -fno-sign-zero -fbacktrace -ggdb -finit-real=snan \
+	-fbounds-check -Wuninitialized -Warray-bounds \
+	-ffixed-form -ffixed-line-length-132 -x f77-cpp-input
 
 # Preliminary definitions
 
 EXE_DIR := bin/
 EXECUTABLE := $(EXE_DIR)athena
 SRC_FILES := $(wildcard src/*.cpp) \
+			 src/eos/general/mesaeos_lib.o \
+       src/eos/general/$(GENERAL_EOS_FILE) \
+       src/eos/$(EOS_FILE) \
+       src/eos/eos_high_order.cpp \
+       src/eos/eos_scalars.cpp \
 	     $(wildcard src/bvals/*.cpp) \
 	     $(wildcard src/bvals/cc/*.cpp) \
 	     $(wildcard src/bvals/cc/fft_grav/*.cpp) \
@@ -37,10 +49,6 @@ SRC_FILES := $(wildcard src/*.cpp) \
 	     $(wildcard src/bvals/orbital/*.cpp) \
 	     $(wildcard src/bvals/utils/*.cpp) \
 	     $(wildcard src/coordinates/*.cpp) \
-	     src/eos/general/$(GENERAL_EOS_FILE) \
-	     src/eos/$(EOS_FILE) \
-	     src/eos/eos_high_order.cpp \
-	     src/eos/eos_scalars.cpp \
 	     $(wildcard src/fft/*.cpp) \
 	     $(wildcard src/field/*.cpp) \
 	     $(wildcard src/field/field_diffusion/*.cpp) \
@@ -61,6 +69,8 @@ SRC_FILES := $(wildcard src/*.cpp) \
 	     $(wildcard src/task_list/*.cpp) \
 	     $(wildcard src/utils/*.cpp) \
 	     $(MPIFFT_FILE)
+# src/eos/$(EOS_FILE)
+
 OBJ_DIR := obj/
 OBJ_FILES := $(addprefix $(OBJ_DIR),$(notdir $(SRC_FILES:.cpp=.o)))
 GCOV_FILES := $(notdir $(addsuffix .gcov,$(SRC_FILES)))
@@ -68,12 +78,6 @@ GCDA_FILES := $(wildcard $(OBJ_DIR)/*.gcda)
 SRC_PREFIX := src/
 SRC_DIRS := $(dir $(SRC_FILES))
 VPATH := $(SRC_DIRS)
-
-mesa_flags := "-Wno-uninitialized -fno-range-check -fmax-errors=12  -fprotect-parens -fno-sign-zero -fbacktrace -ggdb -finit-real=snan  -fbounds-check -Wuninitialized -Warray-bounds  -ffixed-form -ffixed-line-length-132 -x f77-cpp-input"
-charmc      := @CHARM_PATH@/bin/charmc
-$(OBJ_DIR)mesaeos_lib.o: src/eos/general/mesaeos_lib.f
-	$(charmc) -o $(OBJ_DIR)mesaeos_lib.o $(mesa_flags) -I$(MESA_DIR)/include src/eos/general/mesaeos_lib.f $(LDLIBS_FORTRAN)
-
 
 # Generally useful targets
 
@@ -102,7 +106,17 @@ $(OBJ_DIR):
 # Link objects into executable
 
 $(EXECUTABLE) : $(OBJ_FILES)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS) $(LDLIBS_MESA)
+
+# Create MESA EOS object from wrapper
+
+$(OBJ_DIR)mesaeos_lib.o : mesaeos_lib.f
+	gfortran -c $(mesa_flags) -I$(MESA_DIR)/include src/eos/general/mesaeos_lib.f -J $(OBJ_DIR) -o $(OBJ_DIR)mesaeos_lib.o
+
+# Create MESA EOS object from source & fortran object
+
+#$(OBJ_DIR)mesa.o : mesa.cpp
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@ $(OBJ_DIR)mesaeos_lib.o $(LDLIBS_MESA)
 
 # Create objects from source files
 
