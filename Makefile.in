@@ -21,7 +21,7 @@ LDLIBS := @LIBRARY_FLAGS@
 GCOV_CMD := @GCOV_COMMAND@
 
 # for C compilation of mesaeos_lib object
-LDLIBS_MESA := -L$(MESA_DIR)/lib -leos -lchem -linterp_2d -linterp_1d -lnum -lf2crlibm -lcrlibm -lmtx -lconst -lutils -lmesalapack -lmesablas -openmp
+LDLIBS_MESA := -L$(MESA_DIR)/lib -leos -lchem -linterp_2d -linterp_1d -lnum -lf2crlibm -lcrlibm -lmtx -lconst -lutils -lmesalapack -lmesablas # -openmp
 LDLIBS_MESA += -lgfortran
 
 # MESA flags for fortran build

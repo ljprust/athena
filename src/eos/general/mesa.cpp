@@ -28,11 +28,12 @@ namespace{
   int use_solar = 1;
   Real fc12 = 0.0; Real fn14 = 0.0; Real fo16 = 0.0; Real fne20 = 0.0;
 
-  extern void mesaeos_DTget(Real *Rho, Real *T, Real *Xin,
+  // __mesaeos_lib_MOD_mesaeos_dtget( ...
+  extern void mesaeos_dtget(Real *Rho, Real *T, Real *Xin,
     Real *Zin, int *use_solar, Real *fc12, Real *fn14, Real *fo16, Real *fne20,
     Real *press, Real *energy, Real *gamma);
 
-  extern void mesaeos_DEget(Real *Rho, Real *energy, Real *T_guess, Real *Xin,
+  extern void mesaeos_deget(Real *Rho, Real *energy, Real *T_guess, Real *Xin,
     Real *Zin, int *use_solar, Real *fc12, Real *fn14, Real *fo16, Real *fne20,
     Real *T, Real *press, Real *gamma);
 
@@ -55,7 +56,7 @@ Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
   Real Tguess = egas/(3.0/2.0*rho*R_gas);
 
   // call MESA
-  mesaeos_DEget( &rho, &egas, &Tguess, &X, &Z, &use_solar, &fc12,
+  mesaeos_deget( &rho, &egas, &Tguess, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &T, &pres, &gamma);
 
   return pres;
@@ -74,7 +75,7 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
   Real Tguess = Eguess/(3.0/2.0*rho*R_gas);
 
   // call MESA
-  mesaeos_DEget( &rho, &Eguess, &Tguess, &X, &Z, &use_solar, &fc12,
+  mesaeos_deget( &rho, &Eguess, &Tguess, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &T, &pres, &gamma);
 
   // call MESA
@@ -82,7 +83,7 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
   //  &fn14, &fo16, &fne20, &pres, &egas, &gamma);
 
   // plug T back in to get E, gamma
-  mesaeos_DTget( &rho, &T, &X, &Z, &use_solar, &fc12,
+  mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &pres, &egas, &gamma);
 
   return egas;
@@ -101,7 +102,7 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
   Real Eguess = 3.0/2.0*pres;
 
   // call MESA
-  mesaeos_DEget( &rho, &Eguess, &Tguess, &X, &Z, &use_solar, &fc12,
+  mesaeos_deget( &rho, &Eguess, &Tguess, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &T, &pres, &gamma);
 
   // call MESA
@@ -109,7 +110,7 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
   //  &fn14, &fo16, &fne20, &pres, &egas, &gamma);
 
   // plug T back in to get E, gamma
-  mesaeos_DTget( &rho, &T, &X, &Z, &use_solar, &fc12,
+  mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &pres, &egas, &gamma);
 
   return gamma * pres / rho;
