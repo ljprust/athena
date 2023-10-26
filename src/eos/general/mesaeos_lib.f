@@ -103,7 +103,7 @@
      >         ierr)
 
          ! the indices for the results are defined in eos_def.f
-         Prad = crad*T*T*T*T
+         Prad = crad*T*T*T*T/3.0d0
          Pgas = exp_cr(res(i_lnPgas))
          press = Pgas + Prad
          gamma = res(i_gamma1)
@@ -162,7 +162,7 @@
      >         res, d_dlnd, d_dlnT, d_dabar, d_dzbar, ierr)
 
          ! the indices for the results are defined in eos_def.f
-         Prad = crad*T*T*T*T
+         Prad = crad*T*T*T*T/3.0d0
          Pgas = exp_cr(res(i_lnPgas))
          press = Pgas + Prad
          gamma = res(i_gamma1)
@@ -177,78 +177,80 @@
 
       end subroutine mesaeos_DTget
 
-C      subroutine mesaeos_get_T_given_Ptotal( Rho, T_guess, Xin, Zin, use_solar, fc12, fn14, fo16, fne20, T, press, gamma) bind(c)
-C         implicit none
-C
-C         double precision :: X, Y, Z, abar, zbar, z2bar, ye
-C         integer, pointer, dimension(:) :: net_iso, chem_id
-C         double precision :: xa(species)
-C         integer :: max_iter
-C         double precision :: logT_tol, logP_tol, logT_bnd1, logT_bnd2
-C         double precision :: logP_at_bnd1, logP_at_bnd2
-C
-C         integer, intent(in) :: use_solar
-C         double precision, intent(in) :: fc12, fn14, fo16, fne20
-C
-C         double precision, intent(in) :: Rho, T_guess, Xin, Zin, press
-C         double precision, intent(out) :: T, gamma
-C         double precision :: Pgas,log10Rho, Prad
-C         double precision :: dlnT_dlnE_c_Rho, dlnT_dlnd_c_E, dlnPgas_dlnE_c_Rho, dlnPgas_dlnd_c_E
-C         double precision, dimension(num_eos_basic_results) :: res, d_dlnRho_const_T,
-C     >                       d_dlnT_const_Rho, d_dabar_const_TRho, d_dzbar_const_TRho
-C         integer :: ierr
-C         double precision :: log10T
-C
-C         double precision :: xz, frac, dabar_dx(species), dzbar_dx(species), sumx,
-C     >         mass_correction, dmc_dx(species)
-C
-C
-C         allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
-C         if (ierr /= 0) stop 'allocate failed'
-C         X = Xin
-C         Z = Zin
-C         Y = 1 - (X + Z)
-C
-C         call mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
-C
-C         call composition_info(
-C     >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
-C     >         sumx, dabar_dx, dzbar_dx, dmc_dx)
-C
-C         max_iter = 100
-C         logT_tol = 1.0
-C         logP_tol = 1.0
-C         logT_bnd1 = log10_cr(T_guess/10.0)
-C         logT_bnd2 = log10_cr(T_guess*10.0)
-C         logP_at_bnd1 = log10_cr(press/10.0)
-C         logP_at_bnd2 = log10_cr(press*10.0)
-C
-C         call eosDT_get_T_given_Ptotal(
-C     >         handle, Z, X, abar, zbar,
-C     >         species, chem_id, net_iso, xa,
-C     >         log10_cr(Rho), log10_cr(press), logT_tol, logP_tol, max_iter, log10_cf(T_guess),
-C     >         logT_bnd1, logT_bnd2, logP_at_bnd1, logP_at_bnd2,
-C     >         T, res, d_dlnRho_const_T, d_dlnT_const_Rho,
-C     >         d_dabar_const_TRho, d_dzbar_const_TRho, eos_calls, ierr)
-C
-    ! T = 10.0**T
-C
-        ! the indices for the results are defined in eos_def.f
-C         gamma = res(i_gamma1)
-C         if( gamma < 1.) then
-C            write(*,*) "gamma is < 1)" , Prad, Pgas, Rho, T, gamma
-C         endif
-C         deallocate(net_iso, chem_id)
-C
-C         if (ierr /= 0) then
-C            write(*,*) 'bad result from mesaeos_get_T_given_Ptotal'
-C            write(*,*) rho, T_guess, Xin, Zin
-C            stop 1
-C         end if
-C
-C      end subroutine mesaeos_get_T_given_Ptotal
+      subroutine mesaeos_DTget_T_given_Ptotal( Rho, T_guess, press, Xin, Zin, use_solar, fc12, fn14, fo16, fne20, T, gamma) bind(c)
+         implicit none
 
-      subroutine mesaeos_init( input_string) bind(c)
+         double precision :: X, Y, Z, abar, zbar, z2bar, ye
+         integer, pointer, dimension(:) :: net_iso, chem_id
+         double precision :: xa(species)
+         integer :: max_iter
+         integer :: eos_calls
+         double precision :: logT_tol, logP_tol, logT_bnd1, logT_bnd2
+         double precision :: logP_at_bnd1, logP_at_bnd2
+
+         integer, intent(in) :: use_solar
+         double precision, intent(in) :: fc12, fn14, fo16, fne20
+
+         double precision, intent(in) :: Rho, T_guess, Xin, Zin, press
+         double precision, intent(out) :: T, gamma
+         double precision :: Pgas,log10Rho, Prad
+         double precision :: dlnT_dlnE_c_Rho, dlnT_dlnd_c_E, dlnPgas_dlnE_c_Rho, dlnPgas_dlnd_c_E
+         double precision, dimension(num_eos_basic_results) :: res, d_dlnRho_const_T,
+     >                       d_dlnT_const_Rho, d_dabar_const_TRho, d_dzbar_const_TRho
+         integer :: ierr
+         double precision :: log10T
+
+         double precision :: xz, frac, dabar_dx(species), dzbar_dx(species), sumx,
+     >         mass_correction, dmc_dx(species)
+
+
+         allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
+         if (ierr /= 0) stop 'allocate failed'
+         X = Xin
+         Z = Zin
+         Y = 1 - (X + Z)
+
+         call mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
+
+         call composition_info(
+     >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
+     >         sumx, dabar_dx, dzbar_dx, dmc_dx)
+
+         max_iter = 100000
+         logT_tol = 0.001
+         logP_tol = 0.001
+         logT_bnd1 = log10_cr(T_guess/10.0)
+         logT_bnd2 = log10_cr(T_guess*10.0)
+         logP_at_bnd1 = log10_cr(press/10.0)
+         logP_at_bnd2 = log10_cr(press*10.0)
+
+         call eosDT_get_T_given_Ptotal(
+     >         handle, Z, X, abar, zbar,
+     >         species, chem_id, net_iso, xa,
+     >         log10_cr(Rho), log10_cr(press), logT_tol, logP_tol, max_iter, log10_cr(T_guess),
+     >         logT_bnd1, logT_bnd2, logP_at_bnd1, logP_at_bnd2,
+     >         T, res, d_dlnRho_const_T, d_dlnT_const_Rho,
+     >         d_dabar_const_TRho, d_dzbar_const_TRho, eos_calls, ierr)
+
+        T = 10.0**T
+
+        ! the indices for the results are defined in eos_def.f
+         gamma = res(i_gamma1)
+         if( gamma < 1.) then
+            write(*,*) "gamma is < 1)" , Prad, Pgas, Rho, T, gamma
+         endif
+         deallocate(net_iso, chem_id)
+
+         if (ierr /= 0) then
+            write(*,*) 'bad result from mesaeos_get_T_given_Ptotal'
+            write(*,*) rho, T_guess, Xin, Zin
+            stop 1
+         end if
+
+      end subroutine mesaeos_DTget_T_given_Ptotal
+
+C      subroutine mesaeos_init( input_string) bind(c)
+       subroutine mesaeos_init() bind(c)
          use iso_c_binding, only: C_CHAR, c_null_char
          implicit none
          character (len=256) :: eos_file_prefix
@@ -256,12 +258,18 @@ C      end subroutine mesaeos_get_T_given_Ptotal
          logical, parameter :: use_cache = .true.
          character (len=256) :: my_mesa_dir
 
-         character (kind=c_char, len=1), dimension (256), intent (in) ::
+C         character (kind=c_char, len=1), dimension (256), intent (in) ::
+C     >       input_string
+         character (kind=c_char, len=1), dimension (256) ::
      >       input_string
          integer :: i
          type (EoS_General_Info), pointer :: rq
 
+         write(*,*) ''
+         write(*,*) 'Starting up MESA EOS'
+
          my_mesa_dir = " "
+         input_string = "/home/uwm/ljprust/Data/ljprust/mesa-r10398"
          loop_string: do i=1, 256
             if ( input_string (i) == c_null_char ) then
                exit loop_string
@@ -269,17 +277,23 @@ C      end subroutine mesaeos_get_T_given_Ptotal
                my_mesa_dir (i:i) = input_string (i)
             end if
          end do loop_string
+         my_mesa_dir = "/home/uwm/ljprust/Data/ljprust/mesa-r10398"
+         write(*,*) 'Read in mesa directory as:'
+         write(*,*) my_mesa_dir
 
          ierr = 0
 
+         write(*,*) '    calling const init'
          call const_init(my_mesa_dir,ierr)
       	if (ierr /= 0) then
       	   write(*,*) 'const_init failed'
       	   stop 1
       	end if
 
+         write(*,*) '    calling crlibm init'
          call crlibm_init
 
+         write(*,*) '    calling chem init'
          call chem_init('isotopes.data', ierr)
          if (ierr /= 0) then
             write(*,*) 'failed in chem_init'
@@ -288,13 +302,14 @@ C      end subroutine mesaeos_get_T_given_Ptotal
 
          eos_file_prefix = 'mesa'
 
+         write(*,*) '    calling eos init'
          call eos_init(eos_file_prefix, '', '', '', use_cache, ierr)
          if (ierr /= 0) then
             write(*,*) 'eos_init failed in Setup_eos'
             stop 1
          end if
 
-         write(*,*) 'loading eos tables'
+         write(*,*) '    loading eos tables'
 
          handle = alloc_eos_handle(ierr)
          if (ierr /= 0) then
@@ -302,16 +317,18 @@ C      end subroutine mesaeos_get_T_given_Ptotal
             stop 1
          end if
 
-         write(*,*) 'turning off DT2'
-
+         write(*,*) '    calling eos ptr'
          call eos_ptr( handle, rq, ierr)
          if (ierr /= 0) then
             write(*,*) 'failed calling eos_ptr'
             stop
          end if
 
+         write(*,*) '    turning off DT2'
          rq% use_eosDT2 = .false.
 
+         write(*,*) ''
+         write(*,*) 'EOS init success!'
 
       end subroutine mesaeos_init
 

@@ -4,7 +4,7 @@
 // Licensed under the 3-clause BSD License, see LICENSE file for details
 //======================================================================================
 //! \file mesa.cpp
-//! \brief implements ideal EOS in general EOS framework, mostly for debuging
+//! \brief implements MESA EOS
 //======================================================================================
 
 // C headers
@@ -19,6 +19,7 @@ extern "C" {
 namespace{
   const Real a_rad = 7.5646e-15; // ergs / (cm^3 K^4)
   const Real R_gas = 8.314e7; // ergs / (mol K)
+  Real Tfloor = 1.0;
   bool debug = true;
   char MesaDir[256] = "/Users/ljprust/code/mesa-r10398";
 
@@ -37,11 +38,12 @@ namespace{
     Real *Zin, int *use_solar, Real *fc12, Real *fn14, Real *fo16, Real *fne20,
     Real *T, Real *press, Real *gamma);
 
-  // extern void mesaeos_get_T_given_Ptotal(Real *Rho, Real *T_guess, Real *Xin,
-  //   Real *Zin, int *use_solar, Real *fc12, Real *fn14, Real *fo16,
-  //   Real *fne20, Real *T, Real *press, Real *gamma);
+  extern void mesaeos_dtget_t_given_ptotal(Real *Rho, Real *T_guess, Real *press, 
+    Real *Xin, Real *Zin, int *use_solar, Real *fc12, Real *fn14, Real *fo16,
+    Real *fne20, Real *T, Real *gamma);
 
-  extern void mesaeos_init(char MesaDir);
+  //extern void mesaeos_init(char MesaDir);
+  extern void mesaeos_init();
 }
 
 //----------------------------------------------------------------------------------------
@@ -50,14 +52,37 @@ namespace{
 Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
 
   // we will get these from DEget
-  Real press, gamma, T, pres;
+  Real gamma, T, pres;
+  Real Efloor, Pfloor;
+
+  // convert to specific energy
+  Real Especific = egas/rho;
+
+  mesaeos_dtget( &rho, &Tfloor, &X, &Z, &use_solar, &fc12,
+    &fn14, &fo16, &fne20, &Pfloor, &Efloor, &gamma);
+
+  if(Efloor > Especific) {
+    if (debug) { printf("hit energy floor: rho egas Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,egas,Pfloor,Efloor,gamma); }
+    return Pfloor;
+  }
+
+  Real Tguess = std::min(Especific*(5.0/3.0-1.0)/R_gas, std::pow(egas/a_rad, 0.25));
+  Tguess = std::max(Tguess, Tfloor);
+
+  mesaeos_deget( &rho, &Especific, &Tguess, &X, &Z, &use_solar, &fc12,
+    &fn14, &fo16, &fne20, &T, &pres, &gamma);
 
   // guess T assuming ideal monatomic gas
-  Real Tguess = egas/(3.0/2.0*rho*R_gas);
+  //Real Tguess = egas/(3.0/2.0*rho*R_gas);
 
   // call MESA
-  mesaeos_deget( &rho, &egas, &Tguess, &X, &Z, &use_solar, &fc12,
-    &fn14, &fo16, &fne20, &T, &pres, &gamma);
+  //mesaeos_deget( &rho, &egas, &Tguess, &X, &Z, &use_solar, &fc12,
+  //  &fn14, &fo16, &fne20, &T, &pres, &gamma);
+
+  if (debug) { printf("egas->pres: rho egas Tguess T pres gamma %5.3e %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,egas,Tguess,T,pres,gamma); }
+
+  // temporary hack
+  Real presTemp = (5.0/3.0-1.0)*egas;
 
   return pres;
 }
@@ -68,25 +93,49 @@ Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
 Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
 
   // we will get these from MESA
-  Real egas, gamma, T;
+  Real egas, Especific, gamma, T;
+  Real presJunk;
+  Real Efloor, Pfloor;
+
+  mesaeos_dtget( &rho, &Tfloor, &X, &Z, &use_solar, &fc12,
+    &fn14, &fo16, &fne20, &Pfloor, &Efloor, &gamma);
+
+  if(Pfloor > pres) {
+    if (debug) { printf("hit pressure floor: rho pres Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,pres,Pfloor,Efloor,gamma); }
+    return Efloor*rho;
+  }
+
+  Real Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
+  Tguess = std::max(Tguess, Tfloor);
+  //Tguess = 1.0e4;
+
+  mesaeos_dtget_t_given_ptotal( &rho, &Tguess, &pres, &X, &Z, &use_solar, &fc12,
+    &fn14, &fo16, &fne20, &T, &gamma);
+  if(debug) printf("intermediate T gamma from rho Tguess pres %5.3e %5.3e %5.3e %5.3e %5.3e\n",T,gamma,rho,Tguess,pres);
+  mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
+    &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
+
+  //mesaeos_dtget( &rho, &Tguess, &X, &Z, &use_solar, &fc12,
+  //  &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
+
+  if(debug) { printf("pres->egas: rho pres Tguess presJunk egas gamma %5.3e %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,pres,Tguess,presJunk,Especific*rho,gamma); }
 
   // guess E and T assuming ideal monatomic gas
-  Real Eguess = 3.0/2.0*pres;
-  Real Tguess = Eguess/(3.0/2.0*rho*R_gas);
+  //Real Eguess = 3.0/2.0*pres;
+  //Real Tguess = Eguess/(3.0/2.0*rho*R_gas);
 
   // call MESA
-  mesaeos_deget( &rho, &Eguess, &Tguess, &X, &Z, &use_solar, &fc12,
-    &fn14, &fo16, &fne20, &T, &pres, &gamma);
-
-  // call MESA
-  //mesaeos_get_T_given_Ptotal( &rho, &T, &X, &Z, &use_solar, &fc12,
-  //  &fn14, &fo16, &fne20, &pres, &egas, &gamma);
+  //mesaeos_deget( &rho, &Eguess, &Tguess, &X, &Z, &use_solar, &fc12,
+  //  &fn14, &fo16, &fne20, &T, &pres, &gamma);
 
   // plug T back in to get E, gamma
-  mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
-    &fn14, &fo16, &fne20, &pres, &egas, &gamma);
+  //mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
+  //  &fn14, &fo16, &fne20, &pres, &egas, &gamma);
 
-  return egas;
+  // temporary hack
+  egas = pres/(5.0/3.0-1.0);
+
+  return Especific*rho;
 }
 
 //----------------------------------------------------------------------------------------
@@ -95,32 +144,65 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
 Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
 
   // we will get these from MESA
-  Real egas, gamma, T;
+  Real egas, Especific, gamma, T, cs2;
+  Real presJunk;
+  Real Efloor, Pfloor;
+
+  mesaeos_dtget( &rho, &Tfloor, &X, &Z, &use_solar, &fc12,
+    &fn14, &fo16, &fne20, &Pfloor, &Efloor, &gamma);
+
+  if(Pfloor > pres) {
+    if (debug && false) { printf("pressure Efloor gamma %5.3e %5.3e %5.3e\n",pres,Efloor,gamma); }
+    return gamma*Pfloor/rho;
+  }
+
+  Real Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
+  Tguess = std::max(Tguess, Tfloor);
+
+  mesaeos_dtget_t_given_ptotal( &rho, &Tguess, &pres, &X, &Z, &use_solar, &fc12,
+    &fn14, &fo16, &fne20, &T, &gamma);
+  if(debug) printf("intermediate T gamma from rho Tguess pres %5.3e %5.3e %5.3e %5.3e %5.3e\n",T,gamma,rho,Tguess,pres);
+  mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
+    &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
+
+  //mesaeos_dtget( &rho, &Tguess, &X, &Z, &use_solar, &fc12,
+  //  &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
+
+  // we will get these from MESA
+  //Real egas, gamma, T, cs2;
 
   // guess E assuming ideal monatomic gas
-  Real Tguess = pres/(rho*R_gas);
-  Real Eguess = 3.0/2.0*pres;
+  //Real Tguess = pres/(rho*R_gas);
+  //Real Eguess = 3.0/2.0*pres;
 
   // call MESA
-  mesaeos_deget( &rho, &Eguess, &Tguess, &X, &Z, &use_solar, &fc12,
-    &fn14, &fo16, &fne20, &T, &pres, &gamma);
+  //mesaeos_deget( &rho, &Eguess, &Tguess, &X, &Z, &use_solar, &fc12,
+  //  &fn14, &fo16, &fne20, &T, &pres, &gamma);
 
   // call MESA
-  //mesaeos_get_T_given_Ptotal( &rho, &T, &X, &Z, &use_solar, &fc12,
+  //mesaeos_dtget_t_given_ptotal( &rho, &T, &X, &Z, &use_solar, &fc12,
   //  &fn14, &fo16, &fne20, &pres, &egas, &gamma);
 
   // plug T back in to get E, gamma
-  mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
-    &fn14, &fo16, &fne20, &pres, &egas, &gamma);
+  //mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
+  //  &fn14, &fo16, &fne20, &pres, &egas, &gamma);
 
-  return gamma * pres / rho;
+  if(debug) printf("for cs2, using gamma = %5.3e\n",gamma);
+
+  cs2 = gamma*pres/rho;
+
+  // temporary hack
+  //cs2 = 5.0/3.0*pres/rho;
+
+  return cs2;
 }
 
 //----------------------------------------------------------------------------------------
 //! \fn void EquationOfState::InitEosConstants(ParameterInput* pin)
 //! \brief Initialize constants for EOS
 void EquationOfState::InitEosConstants(ParameterInput *pin) {
-  mesaeos_init( *MesaDir );
+  //mesaeos_init( *MesaDir );
+  mesaeos_init();
   return;
 }
-}
+} // extern C
