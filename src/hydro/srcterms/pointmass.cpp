@@ -24,13 +24,21 @@
 
 void HydroSourceTerms::PointMass(const Real dt, const AthenaArray<Real> *flux,
                                  const AthenaArray<Real> &prim, AthenaArray<Real> &cons) {
+  //Real scratch, scratch2, scratch3, scratch4, scratch5;
+
   MeshBlock *pmb = pmy_hydro_->pmy_block;
   for (int k=pmb->ks; k<=pmb->ke; ++k) {
     for (int j=pmb->js; j<=pmb->je; ++j) {
 #pragma omp simd
       for (int i=pmb->is; i<=pmb->ie; ++i) {
         Real den = prim(IDN,k,j,i);
+        //std::cout << den << std::endl;
         Real src = dt*den*pmb->pcoord->coord_src1_i_(i)*gm_/pmb->pcoord->x1v(i);
+        //scratch = pmb->pcoord->coord_src1_i_(i);
+        //scratch2 = gm_;
+        //scratch3 = pmb->pcoord->x1v(i);
+        //scratch4 = src;
+        //scratch5 = dt;
         cons(IM1,k,j,i) -= src;
         if (NON_BAROTROPIC_EOS) {
           cons(IEN,k,j,i) -=
@@ -40,6 +48,7 @@ void HydroSourceTerms::PointMass(const Real dt, const AthenaArray<Real> *flux,
       }
     }
   }
+  //std::cout<<scratch<<" "<<scratch2<<" "<<scratch3<<" "<<scratch4<<" "<<scratch5<<std::endl;
 
   return;
 }

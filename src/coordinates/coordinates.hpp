@@ -46,7 +46,20 @@ class Coordinates {
   AthenaArray<Real> h2f, dh2fd1, h31f, h32f, dh31fd1, dh32fd2;
   AthenaArray<Real> h2v, dh2vd1, h31v, h32v, dh31vd1, dh32vd2;
 
+  // boundary flag array
+  AthenaArray<bool> boundaryFlag;
+  // parameters for boundary
+  static Real boundary_center_x1;
+  static Real boundary_center_x2;
+  static Real boundary_center_x3;
+  static Real boundary_radius;
+
   // functions...
+  // ...to identify boundary cells and faces
+  virtual bool IsBoundaryCell(const int k, const int j, const int i);
+  virtual Real Distance(Real x1a, Real x2a, Real x3a, Real x1b, Real x2b, Real x3b);
+  //virtual bool IsBoundaryFace(const int kleft,  const int jleft,  const int ileft,
+  //                            const int kright, const int jright, const int iright);
   // ...to compute length of edges
   virtual void Edge1Length(const int k, const int j, const int il, const int iu,
                            AthenaArray<Real> &len);

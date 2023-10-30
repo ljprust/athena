@@ -28,6 +28,12 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
   RegionSize& mesh_size  = pmy_block->pmy_mesh->mesh_size;
   RegionSize& block_size = pmy_block->block_size;
 
+  // put boundary parameters in static variables
+  Coordinates::boundary_center_x1 = pin->GetOrAddReal("problem","boundary_center_x1",0.0);
+  Coordinates::boundary_center_x2 = pin->GetOrAddReal("problem","boundary_center_x2",0.0);
+  Coordinates::boundary_center_x3 = pin->GetOrAddReal("problem","boundary_center_x3",0.0);
+  Coordinates::boundary_radius    = pin->GetOrAddReal("problem","boundary_radius"  ,0.0);
+
   // Set indices
   if (coarse_flag) {
     il = pmb->cis; jl = pmb->cjs; kl = pmb->cks;
@@ -318,6 +324,56 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
     x3f(kl  ) = block_size.x3min;
     x3f(ku+1) = block_size.x3max;
   }
+}
+
+// initialize static variables for boundary
+Real Coordinates::boundary_center_x1 = 0.0;
+Real Coordinates::boundary_center_x2 = 0.0;
+Real Coordinates::boundary_center_x3 = 0.0;
+Real Coordinates::boundary_radius    = 0.0;
+
+//----------------------------------------------------------------------------------------
+// IsBoundaryCell: determine if a cell comprises the boundary based
+// on its position relative to the boundary center
+
+bool Coordinates::IsBoundaryCell(const int k, const int j, const int i) {
+#pragma omp simd
+  Real dist;
+  bool isBound;
+  dist = Distance(Coordinates::boundary_center_x1,
+                  Coordinates::boundary_center_x2,
+                  Coordinates::boundary_center_x3,
+                  x1v(i),
+                  x2v(j),
+                  x3v(k));
+  isBound = dist < Coordinates::boundary_radius;
+  return isBound;
+}
+
+
+//----------------------------------------------------------------------------------------
+// Distance: get the distance between two points
+
+Real Coordinates::Distance(Real x1a, Real x2a, Real x3a, Real x1b, Real x2b, Real x3b) {
+#pragma omp simd
+  Real dx1, dx2, dx3, r;
+
+  if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
+    dx1 = x1a - x1b;
+    dx2 = x2a - x2b;
+    dx3 = x3a - x3b;
+  } else if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) { // r, phi, z
+    dx1 = x1a*std::cos(x2a) - x1b*std::cos(x2b);
+    dx2 = x1a*std::sin(x2a) - x1b*std::sin(x2b);
+    dx3 = x3a - x3b;
+  } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) { // r, theta, phi
+    dx1 = x1a*std::sin(x2a)*std::cos(x3a) - x1b*std::sin(x2b)*std::cos(x3b);
+    dx2 = x1a*std::sin(x2a)*std::sin(x3a) - x1b*std::sin(x2b)*std::sin(x3b);
+    dx3 = x1a*std::cos(x2a) - x1b*std::cos(x2b);
+  }
+  r = std::sqrt(dx1*dx1 + dx2*dx2 + dx3*dx3);
+
+  return r;
 }
 
 

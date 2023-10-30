@@ -33,7 +33,14 @@ constexpr Real lu_tol = 3e-16;
 int DoolittleLUPDecompose(Real **a, int n, int *pivot);
 void DoolittleLUPSolve(Real **lu, int *pivot, Real *b, int n, Real *x);
 } // namespace
-
+/*
+// state flipping across faces
+Reconstruction::FlipX1Left(const AthenaArray<Real> winit, AthenaArray<Real> &wflip,
+                           int n, const int k, const int j, int i) {
+  wflip = winit;
+  wflip(IVX,k,j,i) = -winit(IVX,k,j,i);
+}
+*/
 //!constructor
 
 Reconstruction::Reconstruction(MeshBlock *pmb, ParameterInput *pin) :

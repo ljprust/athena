@@ -47,6 +47,15 @@ class Reconstruction {
   AthenaArray<Real> hplus_ratio_k, hminus_ratio_k; // for curvilinear PPMx3
 
   // functions
+  // flip fluid state across a face
+  /*
+  void FlipX1Left (const AthenaArray<Real> winit, AthenaArray<Real> &wflip);
+  void FlipX1Right(const AthenaArray<Real> winit, AthenaArray<Real> &wflip);
+  void FlipX2Left (const AthenaArray<Real> winit, AthenaArray<Real> &wflip);
+  void FlipX2Right(const AthenaArray<Real> winit, AthenaArray<Real> &wflip);
+  void FlipX3Left (const AthenaArray<Real> winit, AthenaArray<Real> &wflip);
+  void FlipX3Right(const AthenaArray<Real> winit, AthenaArray<Real> &wflip);
+  */
   // linear transformations of vectors between primitive and characteristic variables
   void LeftEigenmatrixDotVector(
       const int ivx, const int il, const int iu,

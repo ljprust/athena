@@ -40,6 +40,11 @@ void Hydro::CalculateFluxes(AthenaArray<Real> &w, FaceField &b,
   int ie = pmb->ie; int je = pmb->je; int ke = pmb->ke;
   int il, iu, jl, ju, kl, ku;
 
+  // reset boundary forces
+  pmb->boundaryForceX1 = 0.0;
+  pmb->boundaryForceX2 = 0.0;
+  pmb->boundaryForceX3 = 0.0;
+
   // b,bcc are passed as fn parameters becausse clients may want to pass different bcc1,
   // b1, b2, etc., but the remaining members of the Field class are accessed directly via
   // pointers because they are unique. NOTE: b, bcc are nullptrs if no MHD.
@@ -370,6 +375,9 @@ void Hydro::CalculateFluxes(AthenaArray<Real> &w, FaceField &b,
       }
     } // end if (order == 4)
   }
+
+  // print out boundary forces
+  //std::cout << pmb->boundaryForceX1 << std::endl;
 
   if (!STS_ENABLED)
     AddDiffusionFluxes();

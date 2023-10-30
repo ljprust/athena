@@ -45,11 +45,14 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
   }
   Real gm1 = gamma - 1.0;
   Real igm1 = 1.0/gm1;
+  Coordinates *pco = pmy_block->pcoord;
+  bool isBoundLeft, isBoundRight;
 
 #pragma omp simd private(wli,wri,flxi,fl,fr)
 #pragma distribute_point
   for (int i=il; i<=iu; ++i) {
     //--- Step 1.  Load L/R states into local variables
+
     wli[IDN]=wl(IDN,i);
     wli[IVX]=wl(ivx,i);
     wli[IVY]=wl(ivy,i);
@@ -61,6 +64,32 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     wri[IVY]=wr(ivy,i);
     wri[IVZ]=wr(ivz,i);
     wri[IPR]=wr(IPR,i);
+
+    if (ivx==1) {
+      isBoundLeft  = pco->IsBoundaryCell(k,j,i-1);
+      isBoundRight = pco->IsBoundaryCell(k,j,i  );
+    } else if (ivx==2) {
+      isBoundLeft  = pco->IsBoundaryCell(k,j-1,i);
+      isBoundRight = pco->IsBoundaryCell(k,j  ,i);
+    } else {
+      isBoundLeft  = pco->IsBoundaryCell(k-1,j,i);
+      isBoundRight = pco->IsBoundaryCell(k  ,j,i);
+    }
+
+    if (isBoundLeft) {
+      wli[IDN]=wr(IDN,i);
+      wli[IVX]=-wr(ivx,i);
+      wli[IVY]=wr(ivy,i);
+      wli[IVZ]=wr(ivz,i);
+      wli[IPR]=wr(IPR,i);
+    }
+    if (isBoundRight) {
+      wri[IDN]=wl(IDN,i);
+      wri[IVX]=-wl(ivx,i);
+      wri[IVY]=wl(ivy,i);
+      wri[IVZ]=wl(ivz,i);
+      wri[IPR]=wl(IPR,i);
+    }
 
     //--- Step 2.  Compute middle state estimates with PVRS (Toro 10.5.2)
 
@@ -174,6 +203,46 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     flx(ivy,k,j,i) = flxi[IVY];
     flx(ivz,k,j,i) = flxi[IVZ];
     flx(IEN,k,j,i) = flxi[IEN];
+
+    // zero out boundary cell fluxes here
+    if (isBoundLeft && isBoundRight) {
+      flx(IDN,k,j,i) = 0.0;
+      flx(ivx,k,j,i) = 0.0;
+      flx(ivy,k,j,i) = 0.0;
+      flx(ivz,k,j,i) = 0.0;
+      flx(IEN,k,j,i) = 0.0;
+    }
+
+    // update force on boundary
+    if (ivx==1) {
+      if (isBoundLeft) {
+        pmy_block->boundaryForceX1 -= flx(ivx,k,j,i);
+      } else if (isBoundRight) {
+        pmy_block->boundaryForceX1 += flx(ivx,k,j,i);
+      }
+    } else if (ivx==2) {
+      if (isBoundLeft) {
+        pmy_block->boundaryForceX2 -= flx(ivx,k,j,i);
+      } else if (isBoundRight) {
+        pmy_block->boundaryForceX2 += flx(ivx,k,j,i);
+      }
+    } else {
+      if (isBoundLeft) {
+        pmy_block->boundaryForceX3 -= flx(ivx,k,j,i);
+      } else if (isBoundRight) {
+        pmy_block->boundaryForceX3 += flx(ivx,k,j,i);
+      }
+    }
+
+/*
+    if (!isBoundLeft && isBoundRight) {
+      std::cout << flx(IDN,k,j,i) << std::endl;
+      std::cout << flx(ivx,k,j,i) << std::endl;
+      std::cout << flx(ivy,k,j,i) << std::endl;
+      std::cout << flx(ivz,k,j,i) << std::endl;
+      std::cout << flx(IEN,k,j,i) << std::endl;
+    }
+*/
   }
   return;
 }
