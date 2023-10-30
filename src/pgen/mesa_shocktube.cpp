@@ -34,8 +34,8 @@
 extern "C" {
 
 namespace {
-Real rho0_l, vel0_l, pres0_l;
-Real rho0_r, vel0_r, pres0_r;
+Real rho0L, vel0L, pres0L;
+Real rho0R, vel0R, pres0R;
 Real gammagas, a_rad, R_gas;
 
 extern void mesaeos_dtget(Real *Rho, Real *T, Real *Xin,
@@ -110,7 +110,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   for (int k=ks; k<=ke; ++k) {
     for (int j=js; j<=je; ++j) {
       for (int i=is; i<=ie; ++i) {
-        x = pmb->pcoord->x1v(i);
+        x = pcoord->x1v(i);
         if (x<0.0) {
           phydro->u(IDN,k,j,i) = rho0L;
           phydro->u(IM1,k,j,i) = rho0L*vel0L;

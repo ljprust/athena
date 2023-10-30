@@ -20,7 +20,7 @@ namespace{
   const Real a_rad = 7.5646e-15; // ergs / (cm^3 K^4)
   const Real R_gas = 8.314e7; // ergs / (mol K)
   Real Tfloor = 1.0;
-  bool debug = true;
+  bool debug = false;
   char MesaDir[256] = "/Users/ljprust/code/mesa-r10398";
 
   // set the composition
