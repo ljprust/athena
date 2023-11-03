@@ -113,11 +113,6 @@ $(EXECUTABLE) : $(OBJ_FILES)
 $(OBJ_DIR)mesaeos_lib.o : mesaeos_lib.f
 	gfortran -c $(mesa_flags) -I$(MESA_DIR)/include src/eos/general/mesaeos_lib.f -J $(OBJ_DIR) -o $(OBJ_DIR)mesaeos_lib.o
 
-# Create MESA EOS object from source & fortran object
-
-#$(OBJ_DIR)mesa.o : mesa.cpp
-#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@ $(OBJ_DIR)mesaeos_lib.o $(LDLIBS_MESA)
-
 # Create objects from source files
 
 $(OBJ_DIR)%.o : %.cpp
