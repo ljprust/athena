@@ -327,6 +327,10 @@ C     >       input_string
          write(*,*) '    turning off DT2'
          rq% use_eosDT2 = .false.
 
+         write(*,*) '    turning off electron-positron for HELM'
+         rq% always_skip_elec_pos    = .true.
+         rq% always_include_elec_pos = .false.
+
          write(*,*) ''
          write(*,*) 'EOS init success!'
 
