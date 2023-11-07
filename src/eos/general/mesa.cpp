@@ -58,15 +58,15 @@ Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
 
   // convert to specific energy
   Real Especific = egas/rho;
-
+/*
   mesaeos_dtget( &rho, &Tfloor, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &Pfloor, &Efloor, &gamma);
 
   if(Efloor > Especific) {
-    if (debug) printf("hit energy floor: rho egas Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,egas,Pfloor,Efloor,gamma);
+    if (debug || true) printf("hit energy floor: rho egas Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,egas,Pfloor,Efloor,gamma);
     return Pfloor;
   }
-
+*/
   Tguess = std::min(Especific*(5.0/3.0-1.0)/R_gas, std::pow(egas/a_rad, 0.25));
   Tguess = std::max(Tguess, Tfloor);
 
@@ -88,14 +88,17 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
   Real Tguess, presJunk;
   Real Efloor, Pfloor;
 
+  if(rho<0.0) printf("NEGATIVE DENSITY IN D,P -> E!!! \n");
+
+/*
   mesaeos_dtget( &rho, &Tfloor, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &Pfloor, &Efloor, &gamma);
 
   if(Pfloor > pres) {
-    if (debug) printf("hit pressure floor: rho pres Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,pres,Pfloor,Efloor,gamma);
+    if (debug || true) printf("hit pressure floor: rho pres Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,pres,Pfloor,Efloor,gamma);
     return Efloor*rho;
   }
-
+*/
   Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
   Tguess = std::max(Tguess, Tfloor);
 
@@ -120,14 +123,18 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
   Real Tguess, presJunk;
   Real Efloor, Pfloor;
 
+  if(rho<0.0) printf("NEGATIVE DENSITY IN D,P -> CS !!!\n");
+  if(pres<0.0) printf("NEGATIVE PRESSURE IN D,P -> CS !!!\n");
+
+/*
   mesaeos_dtget( &rho, &Tfloor, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &Pfloor, &Efloor, &gamma);
 
   if(Pfloor > pres) {
-    if (debug && false) printf("pressure Efloor gamma %5.3e %5.3e %5.3e\n",pres,Efloor,gamma);
+    if (debug || true) printf("pressure Efloor gamma %5.3e %5.3e %5.3e\n",pres,Efloor,gamma);
     return gamma*Pfloor/rho;
   }
-
+*/
   Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
   Tguess = std::max(Tguess, Tfloor);
 
@@ -149,7 +156,7 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
 //! \brief Initialize constants for EOS
 void EquationOfState::InitEosConstants(ParameterInput *pin) {
   //mesaeos_init( *MesaDir );
-  mesaeos_init();
+  //mesaeos_init();
   return;
 }
 } // extern C

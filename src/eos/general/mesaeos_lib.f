@@ -216,13 +216,13 @@
      >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
      >         sumx, dabar_dx, dzbar_dx, dmc_dx)
 
-         max_iter = 100000
-         logT_tol = 0.001
-         logP_tol = 0.001
-         logT_bnd1 = log10_cr(T_guess/10.0)
-         logT_bnd2 = log10_cr(T_guess*10.0)
-         logP_at_bnd1 = log10_cr(press/10.0)
-         logP_at_bnd2 = log10_cr(press*10.0)
+         max_iter = 1000
+         logT_tol = 0.0
+         logP_tol = 0.0
+         logT_bnd1 = log10_cr(T_guess/2.0)
+         logT_bnd2 = log10_cr(T_guess*2.0)
+         logP_at_bnd1 = log10_cr(press/2.0)
+         logP_at_bnd2 = log10_cr(press*2.0)
 
          call eosDT_get_T_given_Ptotal(
      >         handle, Z, X, abar, zbar,
@@ -232,7 +232,7 @@
      >         T, res, d_dlnRho_const_T, d_dlnT_const_Rho,
      >         d_dabar_const_TRho, d_dzbar_const_TRho, eos_calls, ierr)
 
-        T = 10.0**T
+        T = exp10_cr(T)
 
         ! the indices for the results are defined in eos_def.f
          gamma = res(i_gamma1)
@@ -327,7 +327,7 @@ C     >       input_string
          write(*,*) '    turning off DT2'
          rq% use_eosDT2 = .false.
 
-         write(*,*) '    turning off electron-positron for HELM'
+         write(*,*) '    turning off Coulomb for HELM'
          rq% always_skip_elec_pos    = .true.
          rq% always_include_elec_pos = .false.
 
