@@ -112,10 +112,16 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     Real rhol = wli[IDN] + (wli[IVX] - umid) * rhoa / ca; // mid-left density
     Real rhor = wri[IDN] + (umid - wri[IVX]) * rhoa / ca; // mid-right density
 
+    if (rhol<0.0) rhol = -rhol;
+    if (rhor<0.0) rhor = -rhor;
+    if (pmid<0.0) pmid = -pmid;
+
     //--- Step 3.  Compute sound speed in L,R
 
     Real ql, qr;
     if (GENERAL_EOS) {
+      //if(rhol<0.0) printf("NEGATIVE RHO L IN HLLC rhoL vL umid rhoa ca isboundleft isboundright %5.3e %5.3e %5.3e %5.3e %5.3e %d %d\n",wli[IDN],wli[IVX],umid,rhoa,ca,isBoundLeft,isBoundRight);
+      //if(rhor<0.0) printf("NEGATIVE RHO R IN HLLC\n");
       Real gl = pmy_block->peos->AsqFromRhoP(rhol, pmid) * rhol / pmid;
       Real gr = pmy_block->peos->AsqFromRhoP(rhor, pmid) * rhor / pmid;
       ql = (pmid <= wli[IPR]) ? 1.0 :
