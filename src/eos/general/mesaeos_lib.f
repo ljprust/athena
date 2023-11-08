@@ -216,13 +216,13 @@
      >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
      >         sumx, dabar_dx, dzbar_dx, dmc_dx)
 
-         max_iter = 1000
+         max_iter = 100000
          logT_tol = 0.0
          logP_tol = 0.0
-         logT_bnd1 = log10_cr(T_guess/2.0)
-         logT_bnd2 = log10_cr(T_guess*2.0)
-         logP_at_bnd1 = log10_cr(press/2.0)
-         logP_at_bnd2 = log10_cr(press*2.0)
+         logT_bnd1 = log10_cr(T_guess/10.0)
+         logT_bnd2 = log10_cr(T_guess*10.0)
+         logP_at_bnd1 = log10_cr(press/10.0)
+         logP_at_bnd2 = log10_cr(press*10.0)
 
          call eosDT_get_T_given_Ptotal(
      >         handle, Z, X, abar, zbar,
@@ -237,7 +237,7 @@
         ! the indices for the results are defined in eos_def.f
          gamma = res(i_gamma1)
          if( gamma < 1.) then
-            write(*,*) "gamma is < 1)" , Prad, Pgas, Rho, T, gamma
+            write(*,*) "gamma is < 1)" , press, Rho, T, gamma
          endif
          deallocate(net_iso, chem_id)
 
