@@ -110,7 +110,7 @@
          gamma = res(i_gamma1)
 
          beta = Pgas/press
-         gamma1analytic = (3.0d0 - 24.0d0*beta - 3.0d0*beta**2) / (24.0d0 - 21.0d0*beta)
+         gamma1analytic = (32.0d0 - 24.0d0*beta - 3.0d0*beta*beta) / (24.0d0 - 21.0d0*beta)
          write(*,*) "gamma1 gamma1analytic beta", gamma, gamma1analytic, beta
 
          if( gamma < 1.) then
