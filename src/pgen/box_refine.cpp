@@ -32,7 +32,6 @@
 #include "../mesh/mesh.hpp"
 #include "../orbital_advection/orbital_advection.hpp"
 #include "../parameter_input.hpp"
-#include "../scalars/scalars.hpp"
 
 #if MAGNETIC_FIELDS_ENABLED
 #error "This problem generator does not support magnetic fields"
@@ -63,7 +62,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   ratio  = pin->GetOrAddReal("mesh","ratio",0.0);
   Nin    = pin->GetOrAddInteger("mesh","Nin",0);
   Ntot   = pin->GetOrAddInteger("mesh","nx1",0);
-  //EnrollUserMeshGenerator(X1DIR, BrokenGeometric);
+  EnrollUserMeshGenerator(X1DIR, BrokenGeometric);
   return;
 }
 
@@ -82,8 +81,6 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         phydro->u(IM2,k,j,i) = 0.0;
         phydro->u(IM3,k,j,i) = 0.0;
         phydro->u(IEN,k,j,i) = p0/(gammagas-1.0) + 0.5*rho0*vel0*vel0;
-
-        pscalars->s(0,k,j,i) = 0.0;
       }
     }
   }
@@ -92,16 +89,12 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 }
 
 Real BrokenGeometric(Real x, RegionSize rs) {
-  printf("here 0\n");
   int index = static_cast<int>(x * static_cast<double>(Ntot))-1;
-  printf("here 1\n");
   std::vector<Real> xout;
   std::vector<Real> deltaxout;
   Real deltaxin = (Rbreak-rs.x1min)/static_cast<double>(Nin);
-  printf("here 2\n");
   Real ratiosum = 0.0;
   for (int i=Nin; i<Ntot; ++i) { ratiosum += std::pow(ratio, i-Nin); }
-  printf("here 3\n");
   Real deltaxbreak = (rs.x1max-Rbreak)/ratiosum;
   for (int j=0; j<Ntot; ++j) {
     if(j<Nin) {
@@ -112,6 +105,6 @@ Real BrokenGeometric(Real x, RegionSize rs) {
       xout.push_back(xout[j-1] + 0.5*deltaxout[j-1] + 0.5*deltaxout[j]);
     }
   }
-  printf("here 4\n");
+  printf("xout %5.3e\n",xout[index]);
   return xout[index];
 }
