@@ -75,6 +75,7 @@
 
          double precision :: xz, frac, dabar_dx(species), dzbar_dx(species), sumx,
      >         mass_correction, dmc_dx(species)
+         double precision :: beta, gamma1analytic
 
 
          allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
@@ -107,6 +108,11 @@
          Pgas = exp_cr(res(i_lnPgas))
          press = Pgas + Prad
          gamma = res(i_gamma1)
+
+         beta = Pgas/press
+         gamma1analytic = (3.0d0 - 24.0d0*beta - 3.0d0*beta**2) / (24.0d0 - 21.0d0*beta)
+         write(*,*) "gamma1 gamma1analytic beta", gamma, gamma1analytic, beta
+
          if( gamma < 1.) then
             write(*,*) "gamma is < 1)" , Prad, Pgas, Rho, T, gamma
          endif
