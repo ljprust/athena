@@ -89,10 +89,12 @@ contains
     do i = 1, num_points
       read(1,*) r(i)
     end do
-    open(unit=1, file='theta.txt')
+    close(1)
+    open(unit=2, file='theta.txt')
     do i = 1, num_points
-      read(1,*) theta(i)
+      read(2,*) theta(i)
     end do
+    close(2)
 
     print *, 'Reshaping data'
     do i = 1, num_points
