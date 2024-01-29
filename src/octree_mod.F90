@@ -45,15 +45,16 @@ module octree_mod
 
 contains
 
-  subroutine octree_init(max_num_point, max_depth, bbox)
+  subroutine octree_init(boxsize, max_num_point, max_depth, bbox)
 
     integer, intent(in), optional :: max_num_point
     integer, intent(in), optional :: max_depth
     real(8), intent(in), optional :: bbox(2, 3)
+    real(8), intent(in) :: boxsize
 
     config%max_num_point = merge(max_num_point, 3, present(max_num_point))
     config%max_depth = merge(max_depth, 10, present(max_depth))
-    config%bbox = merge(bbox, reshape([0.0d0, 1.0d0, 0.0d0, 1.0d0, 0.0d0, 1.0d0], [2, 3]), present(bbox))
+    config%bbox = merge(bbox, reshape([0.0d0, boxsize, 0.0d0, boxsize, 0.0d0, boxsize], [2, 3]), present(bbox))
 
     if (.not. associated(tree%root_node)) allocate(tree%root_node)
     call reset_node(tree%root_node)
@@ -82,7 +83,7 @@ contains
     allocate(points(num_points))
 
     print *, 'Calling octree_init'
-    call octree_init()
+    call octree_init(boxsize)
 
     print *, 'Reading data for ', num_points, ' points'
     open(unit=1, file='r.txt')
@@ -99,8 +100,8 @@ contains
     print *, 'Reshaping data'
     do i = 1, num_points
       points(i)%id = i
-      points(i)%x(1)  = r(i)*dcos(theta(i))/boxsize
-      points(i)%x(2)  = r(i)*dsin(theta(i))/boxsize
+      points(i)%x(1)  = r(i) ! r(i)*dcos(theta(i))
+      points(i)%x(2)  = theta(i) ! r(i)*dsin(theta(i))
       points(i)%x(3)  = 0.0d0
     end do
 
@@ -195,10 +196,9 @@ contains
 
     real(8), intent(in) :: targetx, targety, targetz, boxsize
     integer, intent(out) :: id
-    integer num_ngb
+    integer num_ngb, iter
     real(8) :: x(3)
     real(8) :: searchRadius, min_dist
-    integer :: min_id
 
     searchRadius = 0.01d0 * boxsize
 
@@ -207,9 +207,12 @@ contains
     x(3) = targetz
 
     num_ngb = 0
+    iter = 0
     do while (num_ngb < 1)
+      iter = iter+1
       call octree_search(x, searchRadius, num_ngb, id, searchRadius)
       searchRadius = searchRadius * 2.0d0
+      print *, 'Found ',num_ngb,' neighbors at iteration ',iter
     end do
 
   end subroutine tree_walk
@@ -250,13 +253,21 @@ contains
       ! We are at leaf node.
       d2 = distance * distance
       do i = 1, node%num_point
+        ! print *,tree%points(node%point_ids(i))%x(1),tree%points(node%point_ids(i))%x(2),tree%points(node%point_ids(i))%x(3)
         dx(:) = x(:) - tree%points(node%point_ids(i))%x(:)
+        if (tree%points(node%point_ids(i))%x(1)<0.5d0) then
+          print *, 'INVALID TREE POINT (REALLY BAD)!!!!!! id: ',node%point_ids(i)
+          dx(1) = x(1) - 1.0d0
+        end if
         dist2 = dot_product(dx, dx)
         if (dist2 < d2) then
           num_ngb_point = num_ngb_point + 1
-          if (dist2 < min_dist) then
+          if (dist2 < min_dist*min_dist) then
             min_dist = sqrt(dist2)
             min_id = node%point_ids(i)
+            ! print *, 'Found neighbor id ',min_id,' at distance ',min_dist
+            ! print *, x(1), x(2), x(3)
+            ! print *, tree%points(node%point_ids(i))%x(1),tree%points(node%point_ids(i))%x(2),tree%points(node%point_ids(i))%x(3)
           end if
         end if
       end do

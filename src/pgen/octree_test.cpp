@@ -42,22 +42,49 @@ namespace{
 
 int NumToRead;
 Real boxSize, gammagas;
+std::vector<Real> rho_in, vr_in, pres_in;
 
 void Mesh::InitUserMeshData(ParameterInput *pin) {
 
   NumToRead = pin->GetInteger("problem","NumToRead");
   boxSize = pin->GetReal("mesh","x1max");
   gammagas = pin->GetReal("hydro","gamma");
-
+/*
   if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") != 0) {
     std::stringstream msg;
     msg << "### FATAL ERROR in blast.cpp ProblemGenerator" << std::endl
         << "Unrecognized COORDINATE_SYSTEM=" << COORDINATE_SYSTEM << std::endl;
     ATHENA_ERROR(msg);
   }
+*/
+  char rhoFile[256];
+  char vrFile[256];
+  char presFile[256];
 
-  build_tree(&NumToRead, &boxSize);
+  sprintf(rhoFile,"rho.txt");
+  sprintf(vrFile,"vr.txt");
+  sprintf(presFile,"pres.txt");
 
+  printf("opening data files\n");
+  std::ifstream rhoFileRead, vrFileRead, presFileRead;
+  rhoFileRead.open(rhoFile);
+  vrFileRead.open(vrFile);
+  presFileRead.open(presFile);
+
+  Real rho, vr, pres;
+  for (int l=0; l<NumToRead; l++) {
+    rhoFileRead  >> rho;
+    vrFileRead   >> vr;
+    presFileRead >> pres;
+
+    rho_in.push_back(rho);
+    vr_in.push_back(vr);
+    pres_in.push_back(pres);
+  }
+  printf("done reading, closing data files\n");
+  rhoFileRead.close();
+  vrFileRead.close();
+  presFileRead.close();
   return;
 }
 
@@ -68,47 +95,28 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
-  std::vector<Real> rho_in, vr_in, pres_in;
-  Real rho, vr, pres;
   Real r, theta, x, y, z;
   int index;
-  char rhoFile[256];
-  char vrFile[256];
-  char presFile[256];
 
-  sprintf(rhoFile,"rho.txt");
-  sprintf(vrFile,"vr.txt");
-  sprintf(presFile,"pres.txt");
+  printf("Building tree\n");
+  build_tree(&NumToRead, &boxSize);
 
-  std::ifstream rhoFileRead, vrFileRead, presFileRead;
-  rhoFileRead.open(rhoFile);
-  vrFileRead.open(vrFile);
-  presFileRead.open(presFile);
-
-  for (int l=0; l<NumToRead; l++) {
-    rhoFileRead  >> rho;
-    vrFileRead   >> vr;
-    presFileRead >> pres;
-
-    rho_in.push_back(rho);
-    vr_in.push_back(vr);
-    pres_in.push_back(pres);
-  }
-  rhoFileRead.close();
-  vrFileRead.close();
-  presFileRead.close();
-
+  printf("beginning treewalk\n");
   // setup uniform ambient medium with spherical over-pressured region
   for (int k=ks; k<=ke; k++) {
     for (int j=js; j<=je; j++) {
       for (int i=is; i<=ie; i++) {
         r = pcoord->x1v(i);
-        theta = pcoord->x2v(i);
-        x = r*std::cos(theta);
-        y = r*std::sin(theta);
+        theta = pcoord->x2v(j);
+        x = r; // r*std::cos(theta);
+        y = theta; // r*std::sin(theta);
         z = 0.0;
 
+        index = 0;
         tree_walk(&x, &y, &z, &index, &boxSize);
+        // if (i==is && j==js) index = 1; // hack for float min bug
+        index = index-1; // different indexing in C++ vs Fortran
+        printf("for r theta %5.3e %5.3e found neighbor id %d with rho %5.3e\n",r,theta,index,rho_in[index]);
 
         phydro->u(IDN,k,j,i) = rho_in[index];
         phydro->u(IM1,k,j,i) = vr_in[index];
@@ -119,6 +127,10 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
       }
     }
   }
+  printf("done with treewalk\n");
+  //printf("Calling octree_final\n");
+  //octree_final();
+  //printf("done with octree_final\n");
   return;
 }
 
@@ -128,6 +140,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 //========================================================================================
 
 void Mesh::UserWorkAfterLoop(ParameterInput *pin) {
+  printf("Calling octree_final\n");
   octree_final();
   return;
 }
