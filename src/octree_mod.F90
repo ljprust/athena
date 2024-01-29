@@ -62,12 +62,50 @@ contains
 
   end subroutine octree_init
 
-  subroutine octree_final()
+  subroutine octree_final() bind(c)
 
     call clean_node(tree%root_node)
     deallocate(tree%root_node)
 
   end subroutine octree_final
+
+  subroutine build_tree(num_points, boxsize) bind(c)
+
+    integer, intent(in) :: num_points
+    integer :: i
+    real(8), allocatable :: r(:), theta(:)
+    real(8), intent(in) :: boxsize
+    type(point_type), allocatable :: points(:)
+
+    allocate(r(num_points))
+    allocate(theta(num_points))
+    allocate(points(num_points))
+
+    print *, 'Calling octree_init'
+    call octree_init()
+
+    print *, 'Reading data for ', num_points, ' points'
+    open(unit=1, file='r.txt')
+    do i = 1, num_points
+      read(1,*) r(i)
+    end do
+    open(unit=1, file='theta.txt')
+    do i = 1, num_points
+      read(1,*) theta(i)
+    end do
+
+    print *, 'Reshaping data'
+    do i = 1, num_points
+      points(i)%id = i
+      points(i)%x(1)  = r(i)*dcos(theta(i))/boxsize
+      points(i)%x(2)  = r(i)*dsin(theta(i))/boxsize
+      points(i)%x(3)  = 0.0d0
+    end do
+
+    print *, 'Calling octree_build'
+    call octree_build(points)
+
+  end subroutine build_tree
 
   recursive subroutine octree_build(points, node_)
 
@@ -151,16 +189,40 @@ contains
 
   end subroutine octree_update
 
-  recursive subroutine octree_search(x, distance, num_ngb_point, ngb_ids, node_)
+  subroutine tree_walk(targetx, targety, targetz, id, boxsize) bind(c)
+
+    real(8), intent(in) :: targetx, targety, targetz, boxsize
+    integer, intent(out) :: id
+    integer num_ngb
+    real(8) :: x(3)
+    real(8) :: searchRadius, min_dist
+    integer :: min_id
+
+    searchRadius = 0.01d0 * boxsize
+
+    x(1) = targetx
+    x(2) = targety
+    x(3) = targetz
+
+    num_ngb = 0
+    do while (num_ngb < 1)
+      call octree_search(x, searchRadius, num_ngb, id, searchRadius)
+      searchRadius = searchRadius * 2.0d0
+    end do
+
+  end subroutine tree_walk
+
+  recursive subroutine octree_search(x, distance, num_ngb_point, min_id, min_dist, node_)
 
     real(8), intent(in) :: x(3)
     real(8), intent(in) :: distance
     integer, intent(inout) :: num_ngb_point
-    integer, intent(inout) :: ngb_ids(:)
+    integer, intent(out) :: min_id
+    real(8), intent(inout) :: min_dist
     type(node_type), intent(in), target, optional :: node_
 
     type(node_type), pointer :: node
-    real(8) d2, dx(3)
+    real(8) d2, dist2, dx(3)
     integer i
 
     if (present(node_)) then
@@ -178,7 +240,7 @@ contains
             (x(2) - distance) < node%children(i)%bbox(2,2) .and. &
             (x(3) + distance) > node%children(i)%bbox(1,3) .and. &
             (x(3) - distance) < node%children(i)%bbox(2,3)) then
-          call octree_search(x, distance, num_ngb_point, ngb_ids, node%children(i))
+          call octree_search(x, distance, num_ngb_point, min_id, min_dist, node%children(i))
         end if
       end do
     else
@@ -187,13 +249,12 @@ contains
       d2 = distance * distance
       do i = 1, node%num_point
         dx(:) = x(:) - tree%points(node%point_ids(i))%x(:)
-        if (dot_product(dx, dx) < d2) then
+        dist2 = dot_product(dx, dx)
+        if (dist2 < d2) then
           num_ngb_point = num_ngb_point + 1
-          if (num_ngb_point <= size(ngb_ids)) then
-            ngb_ids(num_ngb_point) = node%point_ids(i)
-          else
-            write(6, "('[Error]: octree: The ngb_ids array size is not enough!')")
-            stop 1
+          if (dist2 < min_dist) then
+            min_dist = sqrt(dist2)
+            min_id = node%point_ids(i)
           end if
         end if
       end do

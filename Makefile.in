@@ -29,6 +29,7 @@ GCOV_CMD := @GCOV_COMMAND@
 EXE_DIR := bin/
 EXECUTABLE := $(EXE_DIR)athena
 SRC_FILES := $(wildcard src/*.cpp) \
+	     src/octree_mod.o \
 	     $(wildcard src/bvals/*.cpp) \
 	     $(wildcard src/bvals/cc/*.cpp) \
 	     $(wildcard src/bvals/cc/fft_grav/*.cpp) \
@@ -111,7 +112,12 @@ $(OBJ_DIR):
 # Link objects into executable
 
 $(EXECUTABLE) : $(OBJ_FILES)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS) -lgfortran
+
+# Create octree object from F90 file
+
+$(OBJ_DIR)octree_mod.o : octree_mod.F90
+	gfortran -x f95-cpp-input -c src/octree_mod.F90 -J $(OBJ_DIR) -o $(OBJ_DIR)octree_mod.o
 
 # Create objects from source files
 
