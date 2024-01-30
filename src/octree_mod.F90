@@ -82,10 +82,10 @@ contains
     allocate(theta(num_points))
     allocate(points(num_points))
 
-    print *, 'Calling octree_init'
+    print *, '   Calling octree_init'
     call octree_init(boxsize)
 
-    print *, 'Reading data for ', num_points, ' points'
+    print *, '   Reading coordinates of ', num_points, ' points'
     open(unit=1, file='r.txt')
     do i = 1, num_points
       read(1,*) r(i)
@@ -97,15 +97,14 @@ contains
     end do
     close(2)
 
-    print *, 'Reshaping data'
     do i = 1, num_points
       points(i)%id = i
-      points(i)%x(1)  = r(i) ! r(i)*dcos(theta(i))
-      points(i)%x(2)  = theta(i) ! r(i)*dsin(theta(i))
+      points(i)%x(1)  = r(i)*dcos(theta(i))
+      points(i)%x(2)  = r(i)*dsin(theta(i))
       points(i)%x(3)  = 0.0d0
     end do
 
-    print *, 'Calling octree_build'
+    print *, '   Calling octree_build'
     call octree_build(points)
 
   end subroutine build_tree
@@ -192,15 +191,15 @@ contains
 
   end subroutine octree_update
 
-  subroutine tree_walk(targetx, targety, targetz, id, boxsize) bind(c)
+  subroutine tree_walk(targetx, targety, targetz, id, deltax) bind(c)
 
-    real(8), intent(in) :: targetx, targety, targetz, boxsize
+    real(8), intent(in) :: targetx, targety, targetz, deltax
     integer, intent(out) :: id
     integer num_ngb, iter
     real(8) :: x(3)
     real(8) :: searchRadius, min_dist
 
-    searchRadius = 0.01d0 * boxsize
+    searchRadius = deltax
 
     x(1) = targetx
     x(2) = targety
@@ -210,17 +209,17 @@ contains
     iter = 0
     do while (num_ngb < 1)
       iter = iter+1
-      call octree_search(x, searchRadius, num_ngb, id, searchRadius)
+      call octree_search(x, searchRadius, num_ngb, id, searchRadius, deltax)
       searchRadius = searchRadius * 2.0d0
-      print *, 'Found ',num_ngb,' neighbors at iteration ',iter
+      ! print *, 'Found ',num_ngb,' neighbors at iteration ',iter
     end do
 
   end subroutine tree_walk
 
-  recursive subroutine octree_search(x, distance, num_ngb_point, min_id, min_dist, node_)
+  recursive subroutine octree_search(x, distance, num_ngb_point, min_id, min_dist, deltax, node_)
 
     real(8), intent(in) :: x(3)
-    real(8), intent(in) :: distance
+    real(8), intent(in) :: distance, deltax
     integer, intent(inout) :: num_ngb_point
     integer, intent(out) :: min_id
     real(8), intent(inout) :: min_dist
@@ -245,7 +244,7 @@ contains
             (x(2) - distance) < node%children(i)%bbox(2,2) .and. &
             (x(3) + distance) > node%children(i)%bbox(1,3) .and. &
             (x(3) - distance) < node%children(i)%bbox(2,3)) then
-          call octree_search(x, distance, num_ngb_point, min_id, min_dist, node%children(i))
+          call octree_search(x, distance, num_ngb_point, min_id, min_dist, deltax, node%children(i))
         end if
       end do
     else
@@ -253,11 +252,11 @@ contains
       ! We are at leaf node.
       d2 = distance * distance
       do i = 1, node%num_point
-        ! print *,tree%points(node%point_ids(i))%x(1),tree%points(node%point_ids(i))%x(2),tree%points(node%point_ids(i))%x(3)
         dx(:) = x(:) - tree%points(node%point_ids(i))%x(:)
-        if (tree%points(node%point_ids(i))%x(1)<0.5d0) then
-          print *, 'INVALID TREE POINT (REALLY BAD)!!!!!! id: ',node%point_ids(i)
-          dx(1) = x(1) - 1.0d0
+        if ( tree%points(node%point_ids(i))%x(1) < 1.0d-10 ) then
+          print *, 'INVALID TREE POINT WITH ID: ',node%point_ids(i)
+          print *, '    resetting distance to mean particle spacing'
+          dx(1) = deltax
         end if
         dist2 = dot_product(dx, dx)
         if (dist2 < d2) then
@@ -266,8 +265,6 @@ contains
             min_dist = sqrt(dist2)
             min_id = node%point_ids(i)
             ! print *, 'Found neighbor id ',min_id,' at distance ',min_dist
-            ! print *, x(1), x(2), x(3)
-            ! print *, tree%points(node%point_ids(i))%x(1),tree%points(node%point_ids(i))%x(2),tree%points(node%point_ids(i))%x(3)
           end if
         end if
       end do
