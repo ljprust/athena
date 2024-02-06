@@ -19,8 +19,8 @@ extern "C" {
 namespace{
   const Real a_rad = 7.5646e-15; // ergs / (cm^3 K^4)
   const Real R_gas = 8.314e7; // ergs / (mol K)
-  Real Tfloor = 1000.0;
-  bool debug = false;
+  Real Tfloor = 1.0;
+  bool debug = true;
   char MesaDir[256] = "/Users/ljprust/code/mesa-r10398";
 
   // set the composition
@@ -64,7 +64,7 @@ Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
 
   if(Efloor > Especific) {
     if (debug || true) printf("hit energy floor: rho egas Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,egas,Pfloor,Efloor,gamma);
-    return Pfloor;
+    //return Pfloor;
   }
 
   Tguess = std::min(Especific*(5.0/3.0-1.0)/R_gas, std::pow(egas/a_rad, 0.25));
@@ -96,7 +96,7 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
 
   if(Pfloor > pres) {
     if (debug || true) printf("hit pressure floor: rho pres Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,pres,Pfloor,Efloor,gamma);
-    return Efloor*rho;
+    //return Efloor*rho;
   }
 
   Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
@@ -132,7 +132,7 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
 
   if(Pfloor > pres) {
     if (debug || true) printf("pressure Efloor gamma %5.3e %5.3e %5.3e\n",pres,Efloor,gamma);
-    return gamma*Pfloor/rho;
+    //return gamma*Pfloor/rho;
   }
 
   Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
@@ -156,7 +156,7 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
 //! \brief Initialize constants for EOS
 void EquationOfState::InitEosConstants(ParameterInput *pin) {
   //mesaeos_init( *MesaDir );
-  //mesaeos_init();
+  mesaeos_init();
   return;
 }
 } // extern C
