@@ -31,7 +31,7 @@ gamma = 5.0/3.0
 Pinf = 9109.0 # 1.0/gamma
 rhoinf = 6.76e-9 # 1.0
 nfiles = 1
-first = 10
+first = 50
 interval = 1
 fileprefix = 'wt.out1.'
 filesuffix = '.athdf'
@@ -57,6 +57,7 @@ def main(myj,**kwargs):
     # Load Python plotting modules
     if kwargs['output_file'] != 'show':
         import matplotlib
+        matplotlib.rc("text", usetex=True)
         matplotlib.use('agg')
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
@@ -423,25 +424,27 @@ def main(myj,**kwargs):
         norm = colors.Normalize()
 
     # Make plot
-    fig = plt.figure(figsize=[9.8,7.9])
+    fig = plt.figure() #(figsize=[6.0,5.0])
 
     #    padding          axes
-    h = [Size.Fixed(1.1), Size.Fixed(7.0), Size.Fixed(1.7)]
-    v = [Size.Fixed(0.7), Size.Fixed(7.0), Size.Fixed(0.2)]
-    divider = Divider(fig, (0, 0, 1, 1), h, v, aspect=False)
+    #h = [Size.Fixed(1.1), Size.Fixed(7.0), Size.Fixed(1.7)]
+    #v = [Size.Fixed(0.7), Size.Fixed(7.0), Size.Fixed(0.2)]
+    #divider = Divider(fig, (0, 0, 1, 1), h, v, aspect=False)
     # The width and height of the rectangle are ignored.
-    ax = fig.add_axes(divider.get_position(),axes_locator=divider.new_locator(nx=1,ny=1))
+    #ax = fig.add_axes(divider.get_position(),axes_locator=divider.new_locator(nx=1,ny=1))
 
-    im = plt.pcolormesh(y_grid/kwargs['lscale'], x_grid/kwargs['lscale'], vals, cmap=cmap, vmin=vmin, vmax=vmax, norm=norm)
+    im = plt.pcolormesh(y_grid/kwargs['lscale'], x_grid/kwargs['lscale'], vals, cmap=cmap, vmin=vmin, vmax=vmax) # , norm=norm)
     #cont = plt.contour(y_grid[0:-1,0:-1], x_grid[0:-1,0:-1], vals, 1, colors='k',origin='lower')
     plt.gca().set_aspect('equal')
     plt.xlim((-r_max/kwargs['lscale']+kwargs['xoffset'], r_max/kwargs['lscale']+kwargs['xoffset']))
     plt.ylim((-r_max/kwargs['lscale'], r_max/kwargs['lscale']))
-    plt.xticks(fontsize=20) # 15)
-    plt.yticks(fontsize=20) # 15)
-    circle = plt.Circle((0.0,0.0), 1.0, fc='None', ec='k', lw=1.0)
+    plt.xticks(fontsize=14) # 15)
+    plt.yticks(fontsize=14) # 15)
+    circle = plt.Circle((0.0,0.0), 0.02, fc='None', ec='k', lw=1.0)
     #circle = plt.Circle((0.0,0.0), 0.002, fc='k', ec='k', lw=1.0)
+    #circle2 = plt.Circle((0.0,0.0), 0.04245, fc='None', ec='k', lw=2.0, ls='--')
     plt.gca().add_patch(circle)
+    #plt.gca().add_patch(circle2)
     #plt.set_cmap('inferno')
     if kwargs['stream'] is not None:
         with warnings.catch_warnings():
@@ -454,7 +457,7 @@ def main(myj,**kwargs):
                 plt.streamplot(x_stream/kwargs['lscale'], y_stream/kwargs['lscale'], vals_x.T, vals_y.T,
                                density=kwargs['stream_density'], color='k')
             else:
-                plt.streamplot(z_stream/kwargs['lscale']+kwargs['xoffset'], x_stream/kwargs['lscale']-kwargs['xoffset'], vals_z.T, vals_x.T,
+                plt.streamplot(z_stream/kwargs['lscale']+kwargs['xoffset'], x_stream/kwargs['lscale']-kwargs['xoffset'], vals_z.T, vals_x.T, linewidth=1.0,
                                density=kwargs['stream_density'], color='k') #, linewidth=4, arrowsize=3)
     if kwargs['logr']:
         if kwargs['midplane']:
@@ -470,15 +473,18 @@ def main(myj,**kwargs):
         else:
             #plt.xlabel(r'$x$ $/$ $R$', fontsize=20) # 20
             #plt.ylabel(r'$z$ $/$ $R$', fontsize=20) # 20
-            plt.xlabel(r'$x/R$', fontsize=24) # 20
-            plt.ylabel(r'$z/R$', fontsize=24) # 20
-    cbar = plt.colorbar(im, shrink=0.887, anchor=(0.0,0.78)) # 0.8
-    cbar.ax.tick_params(labelsize=15)
+            plt.xlabel(r'$x/R_{A}$', fontsize=20) # 20
+            plt.ylabel(r'$z/R_{A}$', fontsize=20) # 20
+    myboundaries = [0.0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0]
+    #cbar = plt.colorbar(im, shrink=0.887, anchor=(0.0,0.78), boundaries=myboundaries) # 0.8
+    ax = plt.axes()
+    cbar = plt.colorbar(im, boundaries=myboundaries)
+    cbar.ax.tick_params(labelsize=14)
     if kwargs['entropy'] :
         cbar.set_label(r'$\sigma/\sigma_{\infty}$', fontsize=24)
         saveasprefix = 'ent'
     elif kwargs['mach'] :
-        cbar.set_label(r'$\mathcal{M}$', fontsize=24)
+        cbar.set_label(r'$\mathcal{M}$', fontsize=20)
         saveasprefix = 'mach'
     elif kwargs['head'] :
         cbar.set_label(r'$B$ (ergs)', fontsize=24)
@@ -500,13 +506,15 @@ def main(myj,**kwargs):
         cbar.set_label(r'$\rho$ (g/cm$^{3}$)', fontsize=24)
         saveasprefix = 'rho'
     #plt.annotate( r'$t = $' + str(time)[0:4] + r' $R_{A}/c_{s}$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='white', size=16 ) # 16
-    plt.annotate( r'$\eta=0.4$, $\mathcal{M}=2$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='white', size=24 )
+    #plt.annotate( r'$\mathcal{M}_{\infty}=0.6$, $\gamma=5/3$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='red', size=20 )
+    ax.text(0.02, 0.02, r'$\mathcal{M}_{\infty}=0.6$, $\gamma=5/3$', color='black', horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes, bbox=dict(facecolor='white', edgecolor='black'), size=16)
+    plt.tight_layout()
     if(nfiles>0):
         kwargs['output_file'] = saveasprefix + filename[myj]
     if kwargs['output_file'] == 'show':
         plt.show()
     else:
-        plt.savefig(kwargs['output_file'], bbox_inches='tight')
+        plt.savefig(kwargs['output_file']) # , bbox_inches='tight')
         print 'saved figure',kwargs['output_file']
 
 
