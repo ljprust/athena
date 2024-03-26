@@ -10,28 +10,28 @@
 // C headers
 
 // C++ headers
-#include <algorithm>  // min
-#include <cmath>      // sqrt
-#include <cstdlib>    // srand
-#include <cstring>    // strcmp()
-#include <fstream>
-#include <iostream>   // endl
+#include <algorithm>
+#include <cmath>
+#include <cstring>    // memset
+#include <ctime>
+#include <iomanip>
+#include <iostream>
 #include <limits>
-#include <sstream>    // stringstream
-#include <stdexcept>  // runtime_error
-#include <string>     // c_str()
 
 // Athena++ headers
 #include "../athena.hpp"
 #include "../athena_arrays.hpp"
-#include "../bvals/bvals.hpp"
 #include "../coordinates/coordinates.hpp"
 #include "../eos/eos.hpp"
+#include "../fft/athena_fft.hpp"
 #include "../field/field.hpp"
 #include "../globals.hpp"
+#include "../gravity/fft_gravity.hpp"
+#include "../gravity/gravity.hpp"
+#include "../gravity/mg_gravity.hpp"
 #include "../hydro/hydro.hpp"
 #include "../mesh/mesh.hpp"
-#include "../orbital_advection/orbital_advection.hpp"
+#include "../multigrid/multigrid.hpp"
 #include "../parameter_input.hpp"
 
 #if MAGNETIC_FIELDS_ENABLED
@@ -46,6 +46,25 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                        Real time, Real dt,
                        int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+
+void StaticInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,FaceField &b,
+                 Real time, Real dt,
+                 int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void StaticOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,FaceField &b,
+                 Real time, Real dt,
+                 int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void StaticInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,FaceField &b,
+                 Real time, Real dt,
+                 int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void StaticOuterX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,FaceField &b,
+                 Real time, Real dt,
+                 int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void StaticInnerX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,FaceField &b,
+                 Real time, Real dt,
+                 int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void StaticOuterX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,FaceField &b,
+                 Real time, Real dt,
+                 int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
@@ -63,6 +82,8 @@ Real pvacuum, dvacuum, densgrad;
 //========================================================================================
 
 void Mesh::InitUserMeshData(ParameterInput *pin) {
+  Real four_pi_G = pin->GetReal("problem","four_pi_G");
+  SetFourPiG(four_pi_G);
   // Get parameters for gravitatonal potential of central point mass
   gm0 = pin->GetOrAddReal("problem","GM",0.0);
   rho0 = pin->GetOrAddReal("problem","rho0",1.0);
@@ -78,8 +99,14 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   densgrad = pin->GetOrAddReal("problem","densgrad",0.0);
   expgrad = pin->GetOrAddBoolean("problem","expgrad",false);
   staticBoundary = pin->GetOrAddBoolean("problem","staticBoundary",false);
-  EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
-  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
+  //EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
+  //EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
+  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, StaticInnerX1);
+  EnrollUserBoundaryFunction(BoundaryFace::outer_x1, StaticOuterX1);
+  EnrollUserBoundaryFunction(BoundaryFace::inner_x2, StaticInnerX2);
+  EnrollUserBoundaryFunction(BoundaryFace::outer_x2, StaticOuterX2);
+  EnrollUserBoundaryFunction(BoundaryFace::inner_x3, StaticInnerX3);
+  EnrollUserBoundaryFunction(BoundaryFace::outer_x3, StaticOuterX3);
   return;
 }
 
@@ -261,6 +288,108 @@ void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
     }
   }
 }
+
+void StaticInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  for (int k=kl; k<=ku; ++k) {
+    for (int j=jl; j<=ju; ++j) {
+      for (int i=1;  i<=ngh; ++i) {
+        prim(IDN,k,j,il-i) = rho0;
+        prim(IM1,k,j,il-i) = 0.0;
+        prim(IM2,k,j,il-i) = 0.0;
+        prim(IM3,k,j,il-i) = 0.0;
+        prim(IEN,k,j,il-i) = p0;
+      }
+    }
+  }
+}
+
+void StaticOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  for (int k=kl; k<=ku; ++k) {
+    for (int j=jl; j<=ju; ++j) {
+      for (int i=1;  i<=ngh; ++i) {
+        prim(IDN,k,j,iu+i) = rho0;
+        prim(IM1,k,j,iu+i) = 0.0;
+        prim(IM2,k,j,iu+i) = 0.0;
+        prim(IM3,k,j,iu+i) = 0.0;
+        prim(IEN,k,j,iu+i) = p0;
+      }
+    }
+  }
+}
+
+void StaticInnerX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  for (int k=kl; k<=ku; ++k) {
+    for (int j=1; j<=ngh; ++j) {
+      for (int i=il; i<=iu; ++i) {
+        prim(IDN,k,jl-j,i) = rho0;
+        prim(IM1,k,jl-j,i) = 0.0;
+        prim(IM2,k,jl-j,i) = 0.0;
+        prim(IM3,k,jl-j,i) = 0.0;
+        prim(IEN,k,jl-j,i) = p0;
+      }
+    }
+  }
+}
+
+void StaticOuterX2(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  for (int k=kl; k<=ku; ++k) {
+    for (int j=1; j<=ngh; ++j) {
+      for (int i=il; i<=iu; ++i) {
+        prim(IDN,k,ju+j,i) = rho0;
+        prim(IM1,k,ju+j,i) = 0.0;
+        prim(IM2,k,ju+j,i) = 0.0;
+        prim(IM3,k,ju+j,i) = 0.0;
+        prim(IEN,k,ju+j,i) = p0;
+      }
+    }
+  }
+}
+
+void StaticInnerX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  for (int k=1; k<=ngh; ++k) {
+    for (int j=jl; j<=ju; ++j) {
+      for (int i=il; i<=iu; ++i) {
+        prim(IDN,kl-k,j,i) = rho0;
+        prim(IM1,kl-k,j,i) = 0.0;
+        prim(IM2,kl-k,j,i) = 0.0;
+        prim(IM3,kl-k,j,i) = 0.0;
+        prim(IEN,kl-k,j,i) = p0;
+      }
+    }
+  }
+}
+
+void StaticOuterX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+
+  for (int k=1; k<=ngh; ++k) {
+    for (int j=jl; j<=ju; ++j) {
+      for (int i=il; i<=iu; ++i) {
+        prim(IDN,ku+k,j,i) = rho0;
+        prim(IM1,ku+k,j,i) = 0.0;
+        prim(IM2,ku+k,j,i) = 0.0;
+        prim(IM3,ku+k,j,i) = 0.0;
+        prim(IEN,ku+k,j,i) = p0;
+      }
+    }
+  } 
+} 
 
 namespace {
 //----------------------------------------------------------------------------------------
