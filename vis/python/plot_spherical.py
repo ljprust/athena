@@ -300,9 +300,9 @@ def main(myj,**kwargs):
     # Perform slicing/averaging of scalar data
     if kwargs['midplane']:
         if nx2 % 2 == 0:
-            vals = np.mean(data[kwargs['quantity']][:, nx2/2-1:nx2/2+1, :], axis=1)
+            vals = np.mean(data[kwargs['quantity']][:, nx2//2-1:nx2//2+1, :], axis=1)
         else:
-            vals = data[kwargs['quantity']][:, nx2/2, :]
+            vals = data[kwargs['quantity']][:, nx2//2, :]
         if kwargs['average']:
             vals = np.repeat(np.mean(vals, axis=0, keepdims=True), nx3, axis=0)
     else:
@@ -329,12 +329,12 @@ def main(myj,**kwargs):
         if kwargs['midplane']:
             if nx2 % 2 == 0:
                 vals_r = np.mean(data[kwargs['stream'] + '1']
-                                 [:, nx2/2-1:nx2/2+1, :], axis=1).T
+                                 [:, nx2//2-1:nx2//2+1, :], axis=1).T
                 vals_phi = np.mean(data[kwargs['stream'] + '3']
-                                   [:, nx2/2-1:nx2/2+1, :], axis=1).T
+                                   [:, nx2//2-1:nx2//2+1, :], axis=1).T
             else:
-                vals_r = data[kwargs['stream'] + '1'][:, nx2/2, :].T
-                vals_phi = data[kwargs['stream'] + '3'][:, nx2/2, :].T
+                vals_r = data[kwargs['stream'] + '1'][:, nx2//2, :].T
+                vals_phi = data[kwargs['stream'] + '3'][:, nx2//2, :].T
             if kwargs['stream_average']:
                 vals_r = np.tile(np.reshape(np.mean(vals_r, axis=1), (nx1, 1)), nx3)
                 vals_phi = np.tile(np.reshape(np.mean(vals_phi, axis=1), (nx1, 1)), nx3)
@@ -346,9 +346,9 @@ def main(myj,**kwargs):
                 vals_theta_left = -vals_theta_right
             else:
                 vals_r_right = data[kwargs['stream'] + '1'][0, :, :].T
-                vals_r_left = data[kwargs['stream'] + '1'][nx3/2, :, :].T
+                vals_r_left = data[kwargs['stream'] + '1'][nx3//2, :, :].T
                 vals_theta_right = data[kwargs['stream'] + '2'][0, :, :].T
-                vals_theta_left = -data[kwargs['stream'] + '2'][nx3/2, :, :].T
+                vals_theta_left = -data[kwargs['stream'] + '2'][nx3//2, :, :].T
 
     # Join vector data through boundaries
     if kwargs['stream'] is not None:
@@ -419,9 +419,9 @@ def main(myj,**kwargs):
     vmin = kwargs['vmin']
     vmax = kwargs['vmax']
     if kwargs['logc']:
-        norm = colors.LogNorm()
+        norm = colors.LogNorm(vmin=vmin, vmax=vmax)
     else:
-        norm = colors.Normalize()
+        norm = colors.Normalize(vmin=vmin, vmax=vmax)
 
     # Make plot
     fig = plt.figure() #(figsize=[6.0,5.0])

@@ -26,14 +26,19 @@ gr_probs = set([pgen for pgen in pgen_choices if pgen[0:3] == 'gr_'])
 # MHD-required problems: --rsolver=hlld by default
 mhd_probs = set(['hb3', 'hgb', 'jgg', 'cpaw', 'field_loop',
                  'orszag_tang', 'rotor', 'resist', 'magnoh'])
+grav_mg_probs = set(['binary_gravity', 'collapse'])
+# Chemistry problems
+chem_probs = set([pgen for pgen in pgen_choices if pgen[0:5] == 'chem_'])
 # Newtonian Hydro-only or MHD-optional problems are all leftover pgen/ files
 # --rsolver=hllc by default
-hydro_probs = pgen_choices - gr_probs - mhd_probs
+hydro_probs = pgen_choices - gr_probs - mhd_probs - grav_mg_probs - chem_probs
 # Curvilinear problems
 
 # Define configure flags for each set:
 gr_args = ['g', 't', '-coord=minkowski']
 mhd_args = ['b']
+grav_mg_args = ['-grav=mg']
+chem_args = ['-chemistry=H2', '-chem_ode_solver=forward_euler']
 hydro_args = []
 
 
@@ -42,10 +47,10 @@ def prepare(**kwargs):
     logger.debug('Running test ' + __name__)
     # Check that code compiles all pgen files in single or double precision
     for single_precision in [True, False]:
-        for pgen_set, args in zip([gr_probs, mhd_probs,
-                                   hydro_probs],
-                                  [gr_args, mhd_args,
-                                   hydro_args]):
+        for pgen_set, args in zip([gr_probs, mhd_probs, grav_mg_probs,
+                                   chem_probs, hydro_probs],
+                                  [gr_args, mhd_args, grav_mg_args,
+                                   chem_args, hydro_args]):
             args_lcl = list(args)
             if single_precision:
                 args_lcl.extend(['float'])

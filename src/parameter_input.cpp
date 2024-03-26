@@ -122,11 +122,12 @@ void ParameterInput::LoadFromStream(std::istream &is) {
   std::size_t first_char, last_char;
   std::stringstream msg;
   InputBlock *pib{};
-  int line_num{-1}, blocks_found{0};
+  //int line_num{-1}, blocks_found{0};
+  int blocks_found{0};
 
   while (is.good()) {
     std::getline(is, line);
-    line_num++;
+    //line_num++;
     if (line.find('\t') != std::string::npos) {
       line.erase(std::remove(line.begin(), line.end(), '\t'), line.end());
       // msg << "### FATAL ERROR in function [ParameterInput::LoadFromStream]"
@@ -498,7 +499,7 @@ bool ParameterInput::GetBoolean(std::string block, std::string name) {
   // get pointer to node with same block name in singly linked list of InputBlocks
   pb = GetPtrToBlock(block);
   if (pb == nullptr) {
-    msg << "### FATAL ERROR in function [ParameterInput::GetReal]" << std::endl
+    msg << "### FATAL ERROR in function [ParameterInput::GetBoolean]" << std::endl
         << "Block name '" << block << "' not found when trying to set value "
         << "for parameter '" << name << "'";
     ATHENA_ERROR(msg);
@@ -507,7 +508,7 @@ bool ParameterInput::GetBoolean(std::string block, std::string name) {
   // get pointer to node with same parameter name in singly linked list of InputLines
   pl = pb->GetPtrToLine(name);
   if (pl == nullptr) {
-    msg << "### FATAL ERROR in function [ParameterInput::GetReal]" << std::endl
+    msg << "### FATAL ERROR in function [ParameterInput::GetBoolean]" << std::endl
         << "Parameter name '" << name << "' not found in block '" << block << "'";
     ATHENA_ERROR(msg);
   }
@@ -544,7 +545,7 @@ std::string ParameterInput::GetString(std::string block, std::string name) {
   // get pointer to node with same block name in singly linked list of InputBlocks
   pb = GetPtrToBlock(block);
   if (pb == nullptr) {
-    msg << "### FATAL ERROR in function [ParameterInput::GetReal]" << std::endl
+    msg << "### FATAL ERROR in function [ParameterInput::GetString]" << std::endl
         << "Block name '" << block << "' not found when trying to set value "
         << "for parameter '" << name << "'";
     ATHENA_ERROR(msg);
@@ -553,7 +554,7 @@ std::string ParameterInput::GetString(std::string block, std::string name) {
   // get pointer to node with same parameter name in singly linked list of InputLines
   pl = pb->GetPtrToLine(name);
   if (pl == nullptr) {
-    msg << "### FATAL ERROR in function [ParameterInput::GetReal]" << std::endl
+    msg << "### FATAL ERROR in function [ParameterInput::GetString]" << std::endl
         << "Parameter name '" << name << "' not found in block '" << block << "'";
     ATHENA_ERROR(msg);
   }
