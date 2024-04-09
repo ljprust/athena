@@ -57,10 +57,10 @@ void WindTunnel2DOuterX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 void WindTunnel2DInnerX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                        Real time, Real dt,
                        int il, int iu, int jl, int ju, int kl, int ku, int ngh);
-void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
-                       const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
-                       const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
-                       AthenaArray<Real> &cons_scalar);
+//void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
+//                       const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
+//                       const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
+//                       AthenaArray<Real> &cons_scalar);
 void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
                        const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
                        const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
@@ -282,7 +282,7 @@ void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
           pres = p0;
         }
 
-        if (inflow || staticBoundary) {
+        if (staticBoundary) {
           // set half of the outer boundary to upstream conditions
           prim(IDN,k,j,il-i) = rho;
           prim(IM1,k,j,il-i) = vel0;
@@ -426,7 +426,7 @@ void WindTunnel2DInnerX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
     }
   }
 }
-
+/*
 void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
                   const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
                   const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
@@ -475,7 +475,7 @@ void PointExplode(MeshBlock *pmb, const Real time, const Real dt,
   }
   return;
 }
-
+*/
 void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
                   const AthenaArray<Real> &prim, const AthenaArray<Real> &prim_scalar,
                   const AthenaArray<Real> &bcc, AthenaArray<Real> &cons,
