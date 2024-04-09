@@ -107,7 +107,6 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   printf("Octree build success!\n");
 
   printf("Beginning tree walk...\n");
-  // setup uniform ambient medium with spherical over-pressured region
   for (int k=ks; k<=ke; k++) {
     for (int j=js; j<=je; j++) {
       for (int i=is; i<=ie; i++) {
@@ -125,9 +124,9 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         // printf("for r theta %5.3e %5.3e found neighbor id %d with rho %5.3e\n",r,theta,index,rho_in[index]);
 
         phydro->u(IDN,k,j,i) = rho_in[index];
-        phydro->u(IM1,k,j,i) = vr_in[index];
+        phydro->u(IM1,k,j,i) = rho_in[index]*vr_in[index];
         phydro->u(IM2,k,j,i) = 0.0; // assuming homology so v_theta = v_phi = 0
-        phydro->u(IM3,k,j,i) = 0.0; // remember to decompose vr when using Sprout!!!
+        phydro->u(IM3,k,j,i) = 0.0;
         phydro->u(IEN,k,j,i) = pres_in[index]/(gammagas-1.0)
           + 0.5*rho_in[index]*vr_in[index]*vr_in[index];
         // do we need to call the EOS here?
@@ -137,7 +136,6 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   printf("Finished tree walk\n");
   printf("Dealloating octree...\n");
   octree_final();
-  // printf("Done\n");
   return;
 }
 
