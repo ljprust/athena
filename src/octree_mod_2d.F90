@@ -189,7 +189,7 @@ contains
 
   subroutine tree_walk(targetx, targety, id, deltax) bind(c)
 
-    real(8), intent(in) :: targetx, targety, targetz, deltax
+    real(8), intent(in) :: targetx, targety, deltax
     integer, intent(out) :: id
     integer num_ngb, iter
     real(8) :: x(2)
