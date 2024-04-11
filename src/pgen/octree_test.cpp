@@ -35,7 +35,7 @@ extern "C" {
 
 namespace{
   extern void build_tree(int *numRead, Real *x1max);
-  extern void tree_walk(Real *x, Real *y, Real *z,
+  extern void tree_walk(Real *x, Real *y, // Real *z,
                         int *id, Real *deltax);
   extern void octree_final();
 }
@@ -99,7 +99,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
-  Real r, theta, x, y, z;
+  Real r, theta, x, y;
   int index;
 
   printf("Building tree...\n");
@@ -115,10 +115,10 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         // ignoring phi on purpose
         x = r*std::cos(theta);
         y = r*std::sin(theta);
-        z = 0.0;
+        //printf("x y boxsize %5.3e %5.3e %5.3e\n",x,y,x1max);
 
         index = 0;
-        tree_walk(&x, &y, &z, &index, &deltax);
+        tree_walk(&x, &y, &index, &deltax);
         // if (i==is && j==js) index = 1; // hack for double min bug
         index = index-1; // correct for C++ vs Fortran indices
         // printf("for r theta %5.3e %5.3e found neighbor id %d with rho %5.3e\n",r,theta,index,rho_in[index]);
