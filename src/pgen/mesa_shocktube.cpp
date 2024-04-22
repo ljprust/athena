@@ -95,7 +95,6 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   TL,gammaL,rho0L,TguessL,pres0L);
   mesaeos_dtget( &rho0L, &TL, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &presJunkL, &EspecificL, &gammaL);
-  printf("initial energy density left = %5.3e\n",EspecificL*rho0L);
 
   Real TguessR = std::min(std::pow(3.0*pres0R/a_rad, 0.25), pres0R/R_gas/rho0R);
   printf("Guessing TR = %5.3e\n",TguessR);
@@ -105,6 +104,10 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   TR,gammaR,rho0R,TguessR,pres0R);
   mesaeos_dtget( &rho0R, &TR, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &presJunkR, &EspecificR, &gammaR);
+
+  //EspecificL = pres0L/rho0L/(5.0/3.0-1.0);
+  //EspecificR = pres0R/rho0R/(5.0/3.0-1.0);
+  printf("initial energy density left  = %5.3e\n",EspecificL*rho0L);
   printf("initial energy density right = %5.3e\n",EspecificR*rho0R);
 
   for (int k=ks; k<=ke; ++k) {

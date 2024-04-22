@@ -127,8 +127,12 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
         gl = 5.0/3.0;
         gr = 5.0/3.0;
       } else {
-        gl = pmy_block->peos->AsqFromRhoP(rhol, pmid) * rhol / pmid;
-        gr = pmy_block->peos->AsqFromRhoP(rhor, pmid) * rhor / pmid;
+        //gl = pmy_block->peos->AsqFromRhoP(rhol, pmid) * rhol / pmid;
+        //gr = pmy_block->peos->AsqFromRhoP(rhor, pmid) * rhor / pmid;
+        gl = pmy_block->peos->AsqFromRhoP(wli[IDN], wli[IPR]) * wli[IDN] / wli[IPR];
+        gr = pmy_block->peos->AsqFromRhoP(wri[IDN], wri[IPR]) * wri[IDN] / wri[IPR];
+        //gl = 5.0/3.0;
+        //gr = 5.0/3.0;
       }
       ql = (pmid <= wli[IPR]) ? 1.0 :
            std::sqrt(1.0 + (gl + 1) / (2 * gl) * (pmid / wli[IPR]-1.0));

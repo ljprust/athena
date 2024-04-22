@@ -25,17 +25,17 @@
          double precision, intent(in) :: fc12, fn14, fo16, fne20
          double precision, dimension(species), intent(out) :: xa
          integer, intent(in) :: use_solar
-         net_iso(:) = 0
+         !net_iso(:) = 0 ! uncomment this if you want to kill your performance
 
-         chem_id(h1) = ih1; net_iso(ih1) = h1
-         chem_id(he4) = ihe4; net_iso(ihe4) = he4
-         chem_id(c12) = ic12; net_iso(ic12) = c12
-         chem_id(n14) = in14; net_iso(in14) = n14
-         chem_id(o16) = io16; net_iso(io16) = o16
-         chem_id(ne20) = ine20; net_iso(ine20) = ne20
-         chem_id(mg24) = img24; net_iso(img24) = mg24
+         chem_id(h1) = ih1 !; net_iso(ih1) = h1
+         chem_id(he4) = ihe4 !; net_iso(ihe4) = he4
+         chem_id(c12) = ic12 !; net_iso(ic12) = c12
+         chem_id(n14) = in14 !; net_iso(in14) = n14
+         chem_id(o16) = io16 !; net_iso(io16) = o16
+         chem_id(ne20) = ine20 !; net_iso(ine20) = ne20
+         chem_id(mg24) = img24 !; net_iso(img24) = mg24
 
-         xa(:) = 0.
+         !xa(:) = 0.
          xa(h1) = X
          xa(he4) = Y
          if( use_solar .eq. 1) then
@@ -77,9 +77,9 @@
      >         mass_correction, dmc_dx(species)
          double precision :: beta, gamma1analytic
 
-
-         allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
-         if (ierr /= 0) stop 'allocate failed'
+         !allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
+         allocate(chem_id(species), stat=ierr)
+         !if (ierr /= 0) stop 'allocate failed'
          X = Xin
          Z = Zin
          Y = 1 - (X + Z)
@@ -91,7 +91,7 @@
      >         sumx, dabar_dx, dzbar_dx, dmc_dx)
 
          T = T_guess
-
+         
          ! get a set of results for given energy and density
          call eosDE_get(
      >         handle, Z, X, abar, zbar,
@@ -111,18 +111,25 @@
 
          beta = Pgas/press
          gamma1analytic = (32.0d0 - 24.0d0*beta - 3.0d0*beta*beta) / (24.0d0 - 21.0d0*beta)
-         write(*,*) "gamma1 gamma1analytic beta", gamma, gamma1analytic, beta
+         !write(*,*) "gamma1 gamma1analytic beta", gamma, gamma1analytic, beta
 
          if( gamma < 1.) then
             write(*,*) "gamma is < 1)" , Prad, Pgas, Rho, T, gamma
          endif
-         deallocate(net_iso, chem_id)
+         !deallocate(net_iso, chem_id)
+         deallocate(chem_id)
 
          if (ierr /= 0) then
             write(*,*) 'bad result from eos_get DE'
             write(*,*) rho, energy, T_guess, Xin, Zin
             stop 1
          end if
+
+         !goto 100
+
+         ! do braindead gamma law
+         !press = Rho*energy*(5.0d0/3.0d0-1.0d0)
+         !gamma = 5.0d0/3.0d0
 
       end subroutine mesaeos_DEget
 
@@ -148,18 +155,21 @@
      >         mass_correction, dmc_dx(species)
          double precision :: beta, gamma1analytic
 
-         allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
-         if (ierr /= 0) stop 'allocate failed'
+         !allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
+         allocate(chem_id(species), stat=ierr)
+         !if (ierr /= 0) stop 'allocate failed'
          X = Xin
          Z = Zin
          Y = 1 - (X + Z)
 
          call mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
 
+         !goto 200
+
          call composition_info(
      >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
      >         sumx, dabar_dx, dzbar_dx, dmc_dx)
-
+         
          ! get a set of results for given energy and density
          call eosDT_get(
      >         handle, Z, X, abar, zbar,
@@ -176,16 +186,21 @@
 
          beta = Pgas/press
          gamma1analytic = (32.0d0 - 24.0d0*beta - 3.0d0*beta*beta) / (24.0d0 - 21.0d0*beta)
-         write(*,*) "gamma1 gamma1analytic beta", gamma, gamma1analytic, beta
+         !write(*,*) "gamma1 gamma1analytic beta", gamma, gamma1analytic, beta
 
          gamma = gamma1analytic
 
-         deallocate(net_iso, chem_id)
+         !deallocate(net_iso, chem_id)
+         deallocate(chem_id)
 
          if (ierr /= 0) then
             write(*,*) 'bad result from eos_get DT'
             stop 1
          end if
+
+         ! braindead gamma law stuff
+         !gamma = 5.0d0/3.0d0
+         !energy = Rho*T*8.3145d7/(5.0d0/3.0d0-1.0d0)
 
       end subroutine mesaeos_DTget
 
@@ -216,8 +231,9 @@
      >         mass_correction, dmc_dx(species)
 
 
-         allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
-         if (ierr /= 0) stop 'allocate failed'
+         !allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
+         allocate(chem_id(species), stat=ierr)
+         !if (ierr /= 0) stop 'allocate failed'
          X = Xin
          Z = Zin
          Y = 1 - (X + Z)
@@ -228,9 +244,9 @@
      >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
      >         sumx, dabar_dx, dzbar_dx, dmc_dx)
 
-         max_iter = 100000
-         logT_tol = 0.0
-         logP_tol = 0.0
+         max_iter = 1000
+         logT_tol = 0.05
+         logP_tol = 0.05
          logT_bnd1 = log10_cr(T_guess/10.0)
          logT_bnd2 = log10_cr(T_guess*10.0)
          logP_at_bnd1 = log10_cr(press/10.0)
@@ -251,7 +267,8 @@
          if( gamma < 1.) then
             write(*,*) "gamma is < 1)" , press, Rho, T, gamma
          endif
-         deallocate(net_iso, chem_id)
+         !deallocate(net_iso, chem_id)
+         deallocate(chem_id)
 
          if (ierr /= 0) then
             write(*,*) 'bad result from mesaeos_get_T_given_Ptotal'

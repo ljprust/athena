@@ -19,8 +19,8 @@ extern "C" {
 namespace{
   const Real a_rad = 7.5646e-15; // ergs / (cm^3 K^4)
   const Real R_gas = 8.314e7; // ergs / (mol K)
-  Real Tfloor = 1.0;
-  bool debug = true;
+  //Real Tfloor = 1000.0;
+  bool debug = false;
   char MesaDir[256] = "/Users/ljprust/code/mesa-r10398";
 
   // set the composition
@@ -58,7 +58,7 @@ Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
 
   // convert to specific energy
   Real Especific = egas/rho;
-
+/*
   mesaeos_dtget( &rho, &Tfloor, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &Pfloor, &Efloor, &gamma);
 
@@ -66,14 +66,18 @@ Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
     if (debug || true) printf("hit energy floor: rho egas Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,egas,Pfloor,Efloor,gamma);
     //return Pfloor;
   }
-
+*/
   Tguess = std::min(Especific*(5.0/3.0-1.0)/R_gas, std::pow(egas/a_rad, 0.25));
-  Tguess = std::max(Tguess, Tfloor);
+  //Tguess = Especific*(5.0/3.0-1.0)/R_gas;
+  //Tguess = std::max(Tguess, Tfloor);
+  //Especific = std::max(Especific, Efloor);
 
   mesaeos_deget( &rho, &Especific, &Tguess, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &T, &pres, &gamma);
 
   if (debug) printf("egas->pres: rho egas Tguess T pres gamma %5.3e %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,egas,Tguess,T,pres,gamma);
+
+  //pres = egas*(5.0/3.0-1.0);
 
   return pres;
 }
@@ -90,7 +94,7 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
 
   if(rho<0.0) printf("NEGATIVE DENSITY IN D,P -> E!!! \n");
 
-
+/*
   mesaeos_dtget( &rho, &Tfloor, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &Pfloor, &Efloor, &gamma);
 
@@ -98,15 +102,17 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
     if (debug || true) printf("hit pressure floor: rho pres Pfloor Efloor gamma %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,pres,Pfloor,Efloor,gamma);
     //return Efloor*rho;
   }
-
+*/
   Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
-  Tguess = std::max(Tguess, Tfloor);
+  //Tguess = pres/R_gas/rho;
+  //Tguess = std::max(Tguess, Tfloor);
 
   mesaeos_dtget_t_given_ptotal( &rho, &Tguess, &pres, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &T, &gamma);
-  if(debug) printf("intermediate T gamma from rho Tguess pres %5.3e %5.3e %5.3e %5.3e %5.3e\n",T,gamma,rho,Tguess,pres);
-  mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
+  //if(debug) printf("intermediate T gamma from rho Tguess pres %5.3e %5.3e %5.3e %5.3e %5.3e\n",T,gamma,rho,Tguess,pres);
+  mesaeos_dtget( &rho, &Tguess, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
+  //Especific = pres/rho/(5.0/3.0-1.0);
 
   if(debug) printf("pres->egas: rho pres Tguess presJunk egas gamma %5.3e %5.3e %5.3e %5.3e %5.3e %5.3e\n",rho,pres,Tguess,presJunk,Especific*rho,gamma);
 
@@ -123,10 +129,10 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
   Real Tguess, presJunk;
   Real Efloor, Pfloor;
 
-  if(rho<0.0) printf("NEGATIVE DENSITY IN D,P -> CS !!!\n");
-  if(pres<0.0) printf("NEGATIVE PRESSURE IN D,P -> CS !!!\n");
+  //if(rho<0.0)  printf("NEGATIVE DENSITY IN D,P -> CS !!!\n");
+  //if(pres<0.0) printf("NEGATIVE PRESSURE IN D,P -> CS !!!\n");
 
-
+/*
   mesaeos_dtget( &rho, &Tfloor, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &Pfloor, &Efloor, &gamma);
 
@@ -134,18 +140,20 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
     if (debug || true) printf("pressure Efloor gamma %5.3e %5.3e %5.3e\n",pres,Efloor,gamma);
     //return gamma*Pfloor/rho;
   }
-
+*/
   Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
-  Tguess = std::max(Tguess, Tfloor);
+  //Tguess = pres/R_gas/rho;
+  //Tguess = std::max(Tguess, Tfloor);
 
   mesaeos_dtget_t_given_ptotal( &rho, &Tguess, &pres, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &T, &gamma);
-  if(debug) printf("intermediate T gamma from rho Tguess pres %5.3e %5.3e %5.3e %5.3e %5.3e\n",T,gamma,rho,Tguess,pres);
-  mesaeos_dtget( &rho, &T, &X, &Z, &use_solar, &fc12,
+  //if(debug) printf("intermediate T gamma from rho Tguess pres %5.3e %5.3e %5.3e %5.3e %5.3e\n",T,gamma,rho,Tguess,pres);
+  mesaeos_dtget( &rho, &Tguess, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
 
   if(debug) printf("for cs2, using gamma = %5.3e\n",gamma);
 
+  //gamma = 5.0/3.0;
   cs2 = gamma*pres/rho;
 
   return cs2;
@@ -156,7 +164,7 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
 //! \brief Initialize constants for EOS
 void EquationOfState::InitEosConstants(ParameterInput *pin) {
   //mesaeos_init( *MesaDir );
-  mesaeos_init();
+  //mesaeos_init();
   return;
 }
 } // extern C
