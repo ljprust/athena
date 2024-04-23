@@ -59,7 +59,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   Eej       = pin->GetReal("problem","Eej");
   r0        = pin->GetReal("problem","r0");
   rhoFloor  = pin->GetReal("problem","rhoFloor");
-  presFloor = pin->GetReal("problem","presFloor");
+  //presFloor = pin->GetReal("problem","presFloor");
 
   printf("Calling mesa eos init from pgen ...\n");
   mesaeos_init();
@@ -86,15 +86,16 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   v0sq = 4.0/3.0*Eej/Mej;
   prefactor = std::pow(3.0/4.0/3.14159/Eej,1.5)*std::pow(Mej,2.5)/t0/t0/t0;
 
-  Real temp, Tguess, gamma, presJunk, Especific, EspecificFloor;
+  Real temp, Tguess, Tfloor, gamma, presJunk, Especific, EspecificFloor;
 
-  Tguess = std::min(std::pow(3.0*presFloor/a_rad, 0.25), presFloor/R_gas/rhoFloor);
-  printf("Guessing T = %5.3e\n",Tguess);
-  mesaeos_dtget_t_given_ptotal( &rhoFloor, &Tguess, &presFloor, &X, &Z,
-    &use_solar, &fc12, &fn14, &fo16, &fne20, &temp, &gamma);
+  //Tguess = std::min(std::pow(3.0*presFloor/a_rad, 0.25), presFloor/R_gas/rhoFloor);
+  //printf("Guessing T = %5.3e\n",Tguess);
+  //mesaeos_dtget_t_given_ptotal( &rhoFloor, &Tguess, &presFloor, &X, &Z,
+  //  &use_solar, &fc12, &fn14, &fo16, &fne20, &temp, &gamma);
   //printf("intermediate T gamma from rhoL TguessL presL %5.3e %5.3e %5.3e %5.3e %5.3e\n",
   //TL,gammaL,rho0L,TguessL,pres0L);
-  mesaeos_dtget( &rhoFloor, &temp, &X, &Z, &use_solar, &fc12,
+  Tfloor = 1.0e5;
+  mesaeos_dtget( &rhoFloor, &Tfloor, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &presJunk, &EspecificFloor, &gamma);
 
   //EspecificL = pres0L/rho0L/(5.0/3.0-1.0);
@@ -108,7 +109,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           vr = x/t0;
           rho = prefactor*std::exp(-vr*vr/v0sq);
 
-          temp = 2.0e4; // at t0 = 2 hr
+          temp = 1.0e6; // at t0 = 2 hr
           //Tguess = std::min(std::pow(3.0*presFloor/a_rad, 0.25), presFloor/R_gas/rhoFloor);
           //printf("Guessing T = %5.3e\n",Tguess);
           //mesaeos_dtget_t_given_ptotal( &rhoFloor, &Tguess, &presFloor, &X, &Z,
