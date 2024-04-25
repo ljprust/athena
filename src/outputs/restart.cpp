@@ -21,18 +21,21 @@
 // Athena++ headers
 #include "../athena.hpp"
 #include "../athena_arrays.hpp"
+#include "../chem_rad/chem_rad.hpp"
+#include "../cr/cr.hpp"
 #include "../field/field.hpp"
 #include "../globals.hpp"
 #include "../hydro/hydro.hpp"
 #include "../mesh/mesh.hpp"
+#include "../nr_radiation/radiation.hpp"
 #include "../parameter_input.hpp"
 #include "../scalars/scalars.hpp"
-#include "outputs.hpp"
+#include "./outputs.hpp"
 
 
 //----------------------------------------------------------------------------------------
 //! \fn void RestartOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin,
-//                                          bool force_write)
+//!                                         bool force_write)
 //! \brief Cycles over all MeshBlocks and writes data to a single restart file.
 
 void RestartOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool force_write) {
@@ -177,11 +180,26 @@ void RestartOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool force_wr
       pdata += pmb->pfield->b.x3f.GetSizeInBytes();
     }
 
+    if (NR_RADIATION_ENABLED || IM_RADIATION_ENABLED) {
+      std::memcpy(pdata,pmb->pnrrad->ir.data(),pmb->pnrrad->ir.GetSizeInBytes());
+      pdata += pmb->pnrrad->ir.GetSizeInBytes();
+    }
+
+    if (CR_ENABLED) {
+      std::memcpy(pdata,pmb->pcr->u_cr.data(),pmb->pcr->u_cr.GetSizeInBytes());
+      pdata += pmb->pcr->u_cr.GetSizeInBytes();
+    }
+
     // (conserved variable) Passive scalars:
     if (NSCALARS > 0) {
       AthenaArray<Real> &s = pmb->pscalars->s;
       std::memcpy(pdata, s.data(), s.GetSizeInBytes());
       pdata += s.GetSizeInBytes();
+      if (CHEMISTRY_ENABLED) {
+        //next step-size in chemistry solver
+        std::memcpy(pdata, pmb->pscalars->h.data(), pmb->pscalars->h.GetSizeInBytes());
+        pdata += pmb->pscalars->h.GetSizeInBytes();
+      }
     }
     // (primitive variable) density-normalized passive scalar concentrations
     // if ???
@@ -190,6 +208,10 @@ void RestartOutput::WriteOutputFile(Mesh *pm, ParameterInput *pin, bool force_wr
     //   std::memcpy(pdata, r.data(), r.GetSizeInBytes());
     //   pdata += r.GetSizeInBytes();
     // }
+    if (CHEMRADIATION_ENABLED) {
+      std::memcpy(pdata, pmb->pchemrad->ir.data(), pmb->pchemrad->ir.GetSizeInBytes());
+      pdata += pmb->pchemrad->ir.GetSizeInBytes();
+    }
 
     // User MeshBlock data:
     // integer data:

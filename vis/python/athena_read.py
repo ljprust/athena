@@ -426,7 +426,7 @@ def athdf(filename, raw=False, data=None, quantities=None, dtype=None, level=Non
                             possible_max = (loc_this_dim+1) * 2**(level-level_this_dim)
                             num_blocks_this_dim = max(num_blocks_this_dim, possible_max)
                         else:
-                            possible_max = (loc_this_dim+1) / 2**(level_this_dim-level)
+                            possible_max = (loc_this_dim+1) // 2**(level_this_dim-level)
                             num_blocks_this_dim = max(num_blocks_this_dim, possible_max)
                     nx_vals.append(num_blocks_this_dim)
             elif block_size[d] == 1:  # singleton dimension
@@ -436,9 +436,9 @@ def athdf(filename, raw=False, data=None, quantities=None, dtype=None, level=Non
         nx1 = nx_vals[0]
         nx2 = nx_vals[1]
         nx3 = nx_vals[2]
-        lx1 = nx1 / block_size[0]
-        lx2 = nx2 / block_size[1]
-        lx3 = nx3 / block_size[2]
+        lx1 = nx1 // block_size[0]
+        lx2 = nx2 // block_size[1]
+        lx3 = nx3 // block_size[2]
         num_extended_dims = 0
         for nx in nx_vals:
             if nx > 1:
@@ -619,7 +619,7 @@ def athdf(filename, raw=False, data=None, quantities=None, dtype=None, level=Non
             if nx == 1:
                 xm = (x1m, x2m, x3m)[d-1]
                 xp = (x1p, x2p, x3p)[d-1]
-                data[xf] = np.array([xm, xp], dtype=dtype)
+                data[xf] = np.array([xm, xp])
             else:
                 xmin = f.attrs['RootGridX' + repr(d)][0]
                 xmax = f.attrs['RootGridX' + repr(d)][1]
@@ -633,9 +633,9 @@ def athdf(filename, raw=False, data=None, quantities=None, dtype=None, level=Non
                     data[xf] = face_func(xmin, xmax, xrat_root, nx+1)
                 elif xrat_root == 1.0:
                     if np.all(levels == level):
-                        data[xf] = np.empty(nx + 1, dtype=dtype)
+                        data[xf] = np.empty(nx + 1)
                         for n_block in range(int((nx - 2*num_ghost)
-                                                 / (block_size[d-1] - 2*num_ghost))):
+                                                 // (block_size[d-1] - 2*num_ghost))):
                             sample_block = np.where(logical_locations[:, d-1]
                                                     == n_block)[0][0]
                             index_low = n_block * (block_size[d-1] - 2*num_ghost)
@@ -645,15 +645,15 @@ def athdf(filename, raw=False, data=None, quantities=None, dtype=None, level=Non
                         if num_ghost > 0:
                             raise AthenaError('Cannot use ghost zones with different'
                                               + ' refinement levels')
-                        data[xf] = np.linspace(xmin, xmax, nx + 1, dtype=dtype)
+                        data[xf] = np.linspace(xmin, xmax, nx + 1)
                 else:
                     if num_ghost > 0:
                         raise AthenaError('Ghost zones incompatible with non-uniform'
                                           + ' coordinate spacing')
                     xrat = xrat_root ** (1.0 / 2**level)
-                    data[xf] = (xmin + (1.0-xrat**np.arange(nx+1, dtype=dtype))
+                    data[xf] = (xmin + (1.0-xrat**np.arange(nx+1))
                                 / (1.0-xrat**nx) * (xmax-xmin))
-            data[xv] = np.empty(nx, dtype=dtype)
+            data[xv] = np.empty(nx)
             for i in range(nx):
                 data[xv][i] = center_func(data[xf][i], data[xf][i+1])
 
@@ -787,12 +787,12 @@ def athdf(filename, raw=False, data=None, quantities=None, dtype=None, level=Non
                 s = 2 ** (block_level - level)
 
                 # Calculate destination indices, without selection
-                il_d = block_location[0] * block_size[0] / s if nx1 > 1 else 0
-                jl_d = block_location[1] * block_size[1] / s if nx2 > 1 else 0
-                kl_d = block_location[2] * block_size[2] / s if nx3 > 1 else 0
-                iu_d = il_d + block_size[0] / s if nx1 > 1 else 1
-                ju_d = jl_d + block_size[1] / s if nx2 > 1 else 1
-                ku_d = kl_d + block_size[2] / s if nx3 > 1 else 1
+                il_d = block_location[0] * block_size[0] // s if nx1 > 1 else 0
+                jl_d = block_location[1] * block_size[1] // s if nx2 > 1 else 0
+                kl_d = block_location[2] * block_size[2] // s if nx3 > 1 else 0
+                iu_d = il_d + block_size[0] // s if nx1 > 1 else 1
+                ju_d = jl_d + block_size[1] // s if nx2 > 1 else 1
+                ku_d = kl_d + block_size[2] // s if nx3 > 1 else 1
 
                 # Calculate (restricted) source indices, with selection
                 il_s = max(il_d, i_min) - il_d
@@ -826,9 +826,9 @@ def athdf(filename, raw=False, data=None, quantities=None, dtype=None, level=Non
                 # Apply subsampling
                 if subsample:
                     # Calculate fine-level offsets (nearest cell at or below center)
-                    o1 = s/2 - 1 if nx1 > 1 else 0
-                    o2 = s/2 - 1 if nx2 > 1 else 0
-                    o3 = s/2 - 1 if nx3 > 1 else 0
+                    o1 = s//2 - 1 if nx1 > 1 else 0
+                    o2 = s//2 - 1 if nx2 > 1 else 0
+                    o3 = s//2 - 1 if nx3 > 1 else 0
 
                     # Assign values
                     for q, dataset, index in zip(quantities, quantity_datasets,
@@ -896,9 +896,9 @@ def athdf(filename, raw=False, data=None, quantities=None, dtype=None, level=Non
                                                                                block_num,
                                                                                k_s, j_s,
                                                                                i_s]
-                    loc1 = (nx1 > 1) * block_location[0] / s
-                    loc2 = (nx2 > 1) * block_location[1] / s
-                    loc3 = (nx3 > 1) * block_location[2] / s
+                    loc1 = (nx1 > 1) * block_location[0] // s
+                    loc2 = (nx2 > 1) * block_location[1] // s
+                    loc3 = (nx3 > 1) * block_location[2] // s
                     restricted_data[loc3, loc2, loc1] = True
 
             # Set level information for cells in this block
@@ -976,10 +976,10 @@ def restrict_like(vals, levels, vols=None):
         level_difference = max_level - level
         stride = 2 ** level_difference
         if nx3 > 1:
-            vals_level = np.reshape(vals * vols, (nx3/stride, stride, nx2/stride, stride,
-                                                  nx1/stride, stride))
-            vols_level = np.reshape(vols, (nx3/stride, stride, nx2/stride, stride,
-                                           nx1/stride, stride))
+            vals_level = np.reshape(vals * vols, (nx3//stride, stride, nx2//stride,
+                                                  stride, nx1//stride, stride))
+            vols_level = np.reshape(vols, (nx3//stride, stride, nx2//stride, stride,
+                                           nx1//stride, stride))
             vals_sum = np.sum(np.sum(np.sum(vals_level, axis=5), axis=3), axis=1)
             vols_sum = np.sum(np.sum(np.sum(vols_level, axis=5), axis=3), axis=1)
             vals_level = np.repeat(np.repeat(np.repeat(vals_sum / vols_sum, stride,
@@ -987,15 +987,16 @@ def restrict_like(vals, levels, vols=None):
                                              stride, axis=1),
                                    stride, axis=2)
         elif nx2 > 1:
-            vals_level = np.reshape(vals * vols, (nx2/stride, stride, nx1/stride, stride))
-            vols_level = np.reshape(vols, (nx2/stride, stride, nx1/stride, stride))
+            vals_level = np.reshape(vals * vols, (nx2//stride, stride, nx1//stride,
+                                                  stride))
+            vols_level = np.reshape(vols, (nx2//stride, stride, nx1//stride, stride))
             vals_sum = np.sum(np.sum(vals_level, axis=3), axis=1)
             vols_sum = np.sum(np.sum(vols_level, axis=3), axis=1)
             vals_level = np.repeat(np.repeat(vals_sum / vols_sum, stride, axis=0),
                                    stride, axis=1)
         else:
-            vals_level = np.reshape(vals * vols, (nx1/stride, stride))
-            vols_level = np.reshape(vols, (nx1/stride, stride))
+            vals_level = np.reshape(vals * vols, (nx1//stride, stride))
+            vols_level = np.reshape(vols, (nx1//stride, stride))
             vals_sum = np.sum(vals_level, axis=1)
             vols_sum = np.sum(vols_level, axis=1)
             vals_level = np.repeat(vals_sum / vols_sum, stride, axis=0)

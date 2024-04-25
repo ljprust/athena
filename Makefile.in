@@ -10,6 +10,10 @@ GENERAL_EOS_FILE = @GENERAL_EOS_FILE@
 RSOLVER_FILE = @RSOLVER_FILE@
 RSOLVER_DIR = @RSOLVER_DIR@
 MPIFFT_FILE = @MPIFFT_FILE@
+CHEMNET_FILE = @CHEMNET_FILE@
+CHEMISTRY_FILE = @CHEMISTRY_FILE@
+CHEM_ODE_SOLVER_FILE = @CHEM_ODE_SOLVER_FILE@
+CHEMRADIATION_FILE = @CHEMRADIATION_FILE@
 
 # General compiler specifications
 
@@ -35,20 +39,32 @@ mesa_flags := -Wno-uninitialized -fno-range-check -fmax-errors=12 \
 EXE_DIR := bin/
 EXECUTABLE := $(EXE_DIR)athena
 SRC_FILES := $(wildcard src/*.cpp) \
-			 src/eos/general/mesaeos_lib.o \
-       src/eos/general/$(GENERAL_EOS_FILE) \
-       src/eos/$(EOS_FILE) \
-       src/eos/eos_high_order.cpp \
-       src/eos/eos_scalars.cpp \
+             src/eos/general/mesaeos_lib.o \
+             src/eos/general/$(GENERAL_EOS_FILE) \
+             src/eos/$(EOS_FILE) \
+             src/eos/eos_high_order.cpp \
+             src/eos/eos_scalars.cpp \
+	     src/octree_mod_2d.o \
 	     $(wildcard src/bvals/*.cpp) \
 	     $(wildcard src/bvals/cc/*.cpp) \
 	     $(wildcard src/bvals/cc/fft_grav/*.cpp) \
 	     $(wildcard src/bvals/cc/hydro/*.cpp) \
 	     $(wildcard src/bvals/cc/mg/*.cpp) \
+             $(wildcard src/bvals/cc/nr_radiation/*.cpp) \
 	     $(wildcard src/bvals/fc/*.cpp) \
 	     $(wildcard src/bvals/orbital/*.cpp) \
+	     $(wildcard src/bvals/sixray/*.cpp) \
 	     $(wildcard src/bvals/utils/*.cpp) \
 	     $(wildcard src/coordinates/*.cpp) \
+	     src/eos/general/$(GENERAL_EOS_FILE) \
+	     src/eos/$(EOS_FILE) \
+	     src/eos/eos_high_order.cpp \
+	     src/eos/eos_scalars.cpp \
+	     $(wildcard $(CHEMISTRY_FILE)) \
+	     $(CHEMNET_FILE) \
+	     $(wildcard src/chemistry/$(CHEM_ODE_SOLVER_FILE)) \
+	     $(wildcard src/chem_rad/*.cpp) \
+	     $(wildcard src/chem_rad/integrators/$(CHEMRADIATION_FILE)) \
 	     $(wildcard src/fft/*.cpp) \
 	     $(wildcard src/field/*.cpp) \
 	     $(wildcard src/field/field_diffusion/*.cpp) \
@@ -56,6 +72,12 @@ SRC_FILES := $(wildcard src/*.cpp) \
 	     $(wildcard src/hydro/*.cpp) \
 	     $(wildcard src/hydro/srcterms/*.cpp) \
 	     $(wildcard src/hydro/hydro_diffusion/*.cpp) \
+             $(wildcard src/nr_radiation/*.cpp) \
+             $(wildcard src/nr_radiation/integrators/*.cpp) \
+             $(wildcard src/nr_radiation/integrators/srcterms/*.cpp) \
+             $(wildcard src/nr_radiation/implicit/*.cpp) \
+             $(wildcard src/cr/*.cpp) \
+             $(wildcard src/cr/integrators/*.cpp) \
 	     src/hydro/rsolvers/$(RSOLVER_DIR)$(RSOLVER_FILE) \
 	     $(wildcard src/inputs/*.cpp) \
 	     $(wildcard src/mesh/*.cpp) \
@@ -68,6 +90,7 @@ SRC_FILES := $(wildcard src/*.cpp) \
 	     $(wildcard src/scalars/*.cpp) \
 	     $(wildcard src/task_list/*.cpp) \
 	     $(wildcard src/utils/*.cpp) \
+	     $(wildcard src/units/*.cpp) \
 	     $(MPIFFT_FILE)
 # src/eos/$(EOS_FILE)
 
@@ -106,12 +129,17 @@ $(OBJ_DIR):
 # Link objects into executable
 
 $(EXECUTABLE) : $(OBJ_FILES)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS) $(LDLIBS_MESA)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS) $(LDLIBS_MESA) -lgfortran
 
 # Create MESA EOS object from wrapper
 
 $(OBJ_DIR)mesaeos_lib.o : mesaeos_lib.f
 	gfortran -c $(mesa_flags) -I$(MESA_DIR)/include src/eos/general/mesaeos_lib.f -J $(OBJ_DIR) -o $(OBJ_DIR)mesaeos_lib.o
+
+# Create octree object from F90 file
+
+$(OBJ_DIR)octree_mod_2d.o : octree_mod_2d.F90
+	gfortran -x f95-cpp-input -c src/octree_mod_2d.F90 -J $(OBJ_DIR) -o $(OBJ_DIR)octree_mod_2d.o
 
 # Create objects from source files
 

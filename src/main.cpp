@@ -34,14 +34,18 @@
 
 // Athena++ headers
 #include "athena.hpp"
+#include "chem_rad/chem_rad.hpp"
 #include "fft/turbulence.hpp"
 #include "globals.hpp"
 #include "gravity/fft_gravity.hpp"
 #include "gravity/mg_gravity.hpp"
 #include "mesh/mesh.hpp"
+#include "nr_radiation/implicit/radiation_implicit.hpp"
+#include "nr_radiation/radiation.hpp"
 #include "outputs/io_wrapper.hpp"
 #include "outputs/outputs.hpp"
 #include "parameter_input.hpp"
+#include "task_list/chem_rad_task_list.hpp"
 #include "utils/utils.hpp"
 
 // MPI/OpenMP headers
@@ -361,6 +365,26 @@ int main(int argc, char *argv[]) {
 #endif // ENABLE_EXCEPTIONS
   }
 
+  // chemistry radiation
+  ChemRadiationIntegratorTaskList *pchemradlist = nullptr;
+  if (CHEMRADIATION_ENABLED) {
+#ifdef ENABLE_EXCEPTIONS
+    try {
+#endif
+      pchemradlist = new ChemRadiationIntegratorTaskList(pinput, pmesh);
+#ifdef ENABLE_EXCEPTIONS
+    }
+    catch(std::bad_alloc& ba) {
+      std::cout << "### FATAL ERROR in main" << std::endl << "memory allocation failed "
+                << "in creating task list " << ba.what() << std::endl;
+#ifdef MPI_PARALLEL
+      MPI_Finalize();
+#endif
+      return(0);
+    }
+#endif // ENABLE_EXCEPTIONS
+  }
+
   //--- Step 6. --------------------------------------------------------------------------
   // Set initial conditions by calling problem generator, or reading restart file
 
@@ -458,6 +482,28 @@ int main(int argc, char *argv[]) {
 
     if (pmesh->turb_flag > 1) pmesh->ptrbd->Driving(); // driven turbulence
 
+    // chemistry with radiation
+    if (CHEMRADIATION_ENABLED) {
+      clock_t tstart_rad, tstop_rad;
+      tstart_rad = std::clock();
+
+      pchemradlist->DoTaskListOneStage(pmesh, 1);
+
+      // radiation tasklist timing output
+      if (pmesh->my_blocks(0)->pchemrad->output_zone_sec) {
+        tstop_rad = std::clock();
+        double cpu_time = (tstop_rad>tstart_rad ?
+            static_cast<double> (tstop_rad-tstart_rad) :
+            1.0)/static_cast<double> (CLOCKS_PER_SEC);
+        std::uint64_t nzones =
+          static_cast<std::uint64_t> (pmesh->my_blocks(0)->GetNumberOfMeshBlockCells());
+        // double zone_sec = static_cast<double> (nzones) / cpu_time;
+        printf("ChemRadiation tasklist: ");
+        printf("ncycle = %d, total time in sec = %.2e, zone/sec=%.2e\n",
+            pmesh->ncycle, cpu_time, Real(nzones)/cpu_time);
+      }
+    }
+
     for (int stage=1; stage<=ptlist->nstages; ++stage) {
       ptlist->DoTaskListOneStage(pmesh, stage);
       if (ptlist->CheckNextMainStage(stage)) {
@@ -465,6 +511,9 @@ int main(int argc, char *argv[]) {
           pmesh->pfgrd->Solve(stage, 0);
         else if (SELF_GRAVITY_ENABLED == 2) // multigrid
           pmesh->pmgrd->Solve(stage);
+      }
+      if (IM_RADIATION_ENABLED) {
+        pmesh->pimrad->Iteration(pmesh,ptlist,stage);
       }
     }
 
@@ -602,6 +651,7 @@ int main(int argc, char *argv[]) {
   delete pmesh;
   delete ptlist;
   delete pouts;
+  delete pchemradlist;
 
 #ifdef MPI_PARALLEL
   MPI_Finalize();
