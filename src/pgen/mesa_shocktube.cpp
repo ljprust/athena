@@ -50,7 +50,7 @@ extern void mesaeos_dtget_t_given_ptotal(Real *Rho, Real *T_guess, Real *press,
   Real *Xin, Real *Zin, int *use_solar, Real *fc12, Real *fn14, Real *fo16,
   Real *fne20, Real *T, Real *gamma);
 
-extern void mesaeos_init();
+extern void mesaeos_init(const char *MesaDir);
 
 } // namespace
 
@@ -63,8 +63,13 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   vel0R    = pin->GetOrAddReal("problem","vel0R", 0.0);
   gammagas = pin->GetOrAddReal("hydro",  "gamma", 0.0);
 
-  printf("Calling mesa eos init from pgen ...\n");
-  mesaeos_init();
+  std::string MesaDir = pin->GetString("problem","MesaDir");
+  char cMesaDir[256];
+  strncpy(cMesaDir, MesaDir.c_str(), sizeof(cMesaDir));
+  cMesaDir[sizeof(cMesaDir) - 1] = 0;
+
+  printf("\nCalling MESA EOS init from problem generator ...\n");
+  mesaeos_init(cMesaDir);
 
   return;
 }

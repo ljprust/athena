@@ -20,13 +20,11 @@ namespace{
   const Real a_rad = 7.5646e-15; // ergs / (cm^3 K^4)
   const Real R_gas = 8.314e7; // ergs / (mol K)
   bool debug = false;
-  char MesaDir[256] = "/Users/ljprust/code/mesa-r10398";
 
-  // set the composition
-  Real X = 1.0;
-  Real Z = 0.0;
-  int use_solar = 1;
-  Real fc12 = 0.0; Real fn14 = 0.0; Real fo16 = 0.0; Real fne20 = 0.0;
+  // composition
+  Real X, Z;
+  int use_solar;
+  Real fc12, fn14, fo16, fne20;
 
   // __mesaeos_lib_MOD_mesaeos_dtget( ...
   extern void mesaeos_dtget(Real *Rho, Real *T, Real *Xin,
@@ -40,9 +38,6 @@ namespace{
   extern void mesaeos_dtget_t_given_ptotal(Real *Rho, Real *T_guess, Real *press,
     Real *Xin, Real *Zin, int *use_solar, Real *fc12, Real *fn14, Real *fo16,
     Real *fne20, Real *T, Real *gamma);
-
-  //extern void mesaeos_init(char MesaDir);
-  extern void mesaeos_init();
 }
 
 //----------------------------------------------------------------------------------------
@@ -141,19 +136,18 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
 void EquationOfState::InitEosConstants(ParameterInput *pin) {
   //mesaeos_init( *MesaDir );
   //mesaeos_init();
-  MesaDir = GetString("problem","MesaDir");
 
-  X = GetOrAddReal("problem","X",1.0);
-  Z = GetOrAddReal("problem","Z",0.0);
+  X = pin->GetOrAddReal("problem","X",1.0);
+  Z = pin->GetOrAddReal("problem","Z",0.0);
 
   // flag to use solar metal fractions
-  use_solar = GetOrAddInteger("problem","use_solar",1);
+  use_solar = pin->GetOrAddInteger("problem","use_solar",1);
 
   // metal compositions as a fraction of Z
-  fc12  = GetOrAddReal("problem","fc12", 0.5);
-  fn14  = GetOrAddReal("problem","fn14", 0.0);
-  fo16  = GetOrAddReal("problem","fo16", 0.5);
-  fne20 = GetOrAddReal("problem","fne20",0.0);
+  fc12  = pin->GetOrAddReal("problem","fc12", 0.5);
+  fn14  = pin->GetOrAddReal("problem","fn14", 0.0);
+  fo16  = pin->GetOrAddReal("problem","fo16", 0.5);
+  fne20 = pin->GetOrAddReal("problem","fne20",0.0);
 
   return;
 }

@@ -16,24 +16,17 @@
          double precision, parameter :: Zfrac_O = 0.482398d0
          double precision, parameter :: Zfrac_Ne = 0.098675d0
 
+         integer, pointer, dimension(:) :: chem_id
+         integer, pointer, dimension(:) :: net_iso
+
       contains
 
-      subroutine mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
+      subroutine mesaeos_initialize_chem( xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
          implicit none
-         integer, pointer, dimension(:) :: net_iso, chem_id
          double precision, intent(in) :: X, Y, Z
          double precision, intent(in) :: fc12, fn14, fo16, fne20
          double precision, dimension(species), intent(out) :: xa
          integer, intent(in) :: use_solar
-         !net_iso(:) = 0 ! uncomment this if you want to kill your performance
-
-         chem_id(h1) = ih1 !; net_iso(ih1) = h1
-         chem_id(he4) = ihe4 !; net_iso(ihe4) = he4
-         chem_id(c12) = ic12 !; net_iso(ic12) = c12
-         chem_id(n14) = in14 !; net_iso(in14) = n14
-         chem_id(o16) = io16 !; net_iso(io16) = o16
-         chem_id(ne20) = ine20 !; net_iso(ine20) = ne20
-         chem_id(mg24) = img24 !; net_iso(img24) = mg24
 
          !xa(:) = 0.
          xa(h1) = X
@@ -58,7 +51,6 @@
          implicit none
 
          double precision :: X, Y, Z, abar, zbar, z2bar, ye
-         integer, pointer, dimension(:) :: net_iso, chem_id
          double precision :: xa(species)
 
          integer, intent(in) :: use_solar
@@ -77,14 +69,11 @@
      >         mass_correction, dmc_dx(species)
          double precision :: beta, gamma1analytic
 
-         !allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
-         allocate(chem_id(species), stat=ierr)
-         !if (ierr /= 0) stop 'allocate failed'
          X = Xin
          Z = Zin
          Y = 1 - (X + Z)
 
-         call mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
+         call mesaeos_initialize_chem( xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
 
          call composition_info(
      >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
@@ -116,8 +105,6 @@
          if( gamma < 1.) then
             write(*,*) "gamma is < 1)" , Prad, Pgas, Rho, T, gamma
          endif
-         !deallocate(net_iso, chem_id)
-         deallocate(chem_id)
 
          if (ierr /= 0) then
             write(*,*) 'bad result from eos_get DE'
@@ -137,7 +124,6 @@
          implicit none
 
          double precision :: X, Y, Z, abar, zbar, z2bar, ye
-         integer, pointer, dimension(:) :: net_iso, chem_id
          double precision :: xa(species)
 
          integer, intent(in) :: use_solar
@@ -155,14 +141,11 @@
      >         mass_correction, dmc_dx(species)
          double precision :: beta, gamma1analytic
 
-         !allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
-         allocate(chem_id(species), stat=ierr)
-         !if (ierr /= 0) stop 'allocate failed'
          X = Xin
          Z = Zin
          Y = 1 - (X + Z)
 
-         call mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
+         call mesaeos_initialize_chem( xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
 
          !goto 200
 
@@ -190,9 +173,6 @@
 
          gamma = gamma1analytic
 
-         !deallocate(net_iso, chem_id)
-         deallocate(chem_id)
-
          if (ierr /= 0) then
             write(*,*) 'bad result from eos_get DT'
             stop 1
@@ -208,7 +188,6 @@
          implicit none
 
          double precision :: X, Y, Z, abar, zbar, z2bar, ye
-         integer, pointer, dimension(:) :: net_iso, chem_id
          double precision :: xa(species)
          integer :: max_iter
          integer :: eos_calls
@@ -230,15 +209,11 @@
          double precision :: xz, frac, dabar_dx(species), dzbar_dx(species), sumx,
      >         mass_correction, dmc_dx(species)
 
-
-         !allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
-         allocate(chem_id(species), stat=ierr)
-         !if (ierr /= 0) stop 'allocate failed'
          X = Xin
          Z = Zin
          Y = 1 - (X + Z)
 
-         call mesaeos_initialize_chem( net_iso, chem_id, xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
+         call mesaeos_initialize_chem( xa, X, Y, Z, use_solar, fc12, fn14, fo16, fne20)
 
          call composition_info(
      >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
@@ -267,8 +242,6 @@
          if( gamma < 1.) then
             write(*,*) "gamma is < 1)" , press, Rho, T, gamma
          endif
-         !deallocate(net_iso, chem_id)
-         deallocate(chem_id)
 
          if (ierr /= 0) then
             write(*,*) 'bad result from mesaeos_get_T_given_Ptotal'
@@ -278,8 +251,7 @@
 
       end subroutine mesaeos_DTget_T_given_Ptotal
 
-C      subroutine mesaeos_init( input_string) bind(c)
-       subroutine mesaeos_init() bind(c)
+      subroutine mesaeos_init( input_string) bind(c)
          use iso_c_binding, only: C_CHAR, c_null_char
          implicit none
          character (len=256) :: eos_file_prefix
@@ -287,10 +259,10 @@ C      subroutine mesaeos_init( input_string) bind(c)
          logical, parameter :: use_cache = .true.
          character (len=256) :: my_mesa_dir
 
-C         character (kind=c_char, len=1), dimension (256), intent (in) ::
-C     >       input_string
-         character (kind=c_char, len=1), dimension (256) ::
+         character (kind=c_char, len=1), dimension (256), intent (in) ::
      >       input_string
+C         character (kind=c_char, len=1), dimension (256) ::
+C     >       input_string
          integer :: i
          type (EoS_General_Info), pointer :: rq
 
@@ -298,7 +270,6 @@ C     >       input_string
          write(*,*) 'Starting up MESA EOS'
 
          my_mesa_dir = " "
-         input_string = "/home/uwm/ljprust/Data/ljprust/mesa-r10398"
          loop_string: do i=1, 256
             if ( input_string (i) == c_null_char ) then
                exit loop_string
@@ -306,23 +277,22 @@ C     >       input_string
                my_mesa_dir (i:i) = input_string (i)
             end if
          end do loop_string
-         my_mesa_dir = "/home/uwm/ljprust/Data/ljprust/mesa-r10398"
-         write(*,*) 'Read in mesa directory as:'
+         write(*,*) 'Read in MESA directory as:'
          write(*,*) my_mesa_dir
 
          ierr = 0
 
-         write(*,*) '    calling const init'
+         write(*,*) '    Calling const init'
          call const_init(my_mesa_dir,ierr)
       	if (ierr /= 0) then
       	   write(*,*) 'const_init failed'
       	   stop 1
       	end if
 
-         write(*,*) '    calling crlibm init'
+         write(*,*) '    Calling crlibm init'
          call crlibm_init
 
-         write(*,*) '    calling chem init'
+         write(*,*) '    Calling chem init'
          call chem_init('isotopes.data', ierr)
          if (ierr /= 0) then
             write(*,*) 'failed in chem_init'
@@ -331,14 +301,14 @@ C     >       input_string
 
          eos_file_prefix = 'mesa'
 
-         write(*,*) '    calling eos init'
+         write(*,*) '    Calling EOS init'
          call eos_init(eos_file_prefix, '', '', '', use_cache, ierr)
          if (ierr /= 0) then
             write(*,*) 'eos_init failed in Setup_eos'
             stop 1
          end if
 
-         write(*,*) '    loading eos tables'
+         write(*,*) '    Loading EOS tables'
 
          handle = alloc_eos_handle(ierr)
          if (ierr /= 0) then
@@ -346,22 +316,33 @@ C     >       input_string
             stop 1
          end if
 
-         write(*,*) '    calling eos ptr'
+         write(*,*) '    Calling EOS ptr'
          call eos_ptr( handle, rq, ierr)
          if (ierr /= 0) then
             write(*,*) 'failed calling eos_ptr'
             stop
          end if
 
-         write(*,*) '    turning off DT2'
+         write(*,*) '    Turning off DT2'
          rq% use_eosDT2 = .false.
 
-         write(*,*) '    turning off Coulomb for HELM'
+         write(*,*) '    Turning off Coulomb for HELM'
          rq% always_skip_elec_pos    = .true.
          rq% always_include_elec_pos = .false.
 
+         write(*,*) '    Setting isotope IDs'
+         allocate(net_iso(num_chem_isos), chem_id(species), stat=ierr)
+         chem_id(h1) = ih1;     net_iso(ih1) = h1
+         chem_id(he4) = ihe4;   net_iso(ihe4) = he4
+         chem_id(c12) = ic12;   net_iso(ic12) = c12
+         chem_id(n14) = in14;   net_iso(in14) = n14
+         chem_id(o16) = io16;   net_iso(io16) = o16
+         chem_id(ne20) = ine20; net_iso(ine20) = ne20
+         chem_id(mg24) = img24; net_iso(img24) = mg24
+
          write(*,*) ''
          write(*,*) 'EOS init success!'
+         write(*,*) ''
 
       end subroutine mesaeos_init
 
