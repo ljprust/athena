@@ -25,6 +25,7 @@ namespace{
   Real X, Z;
   int use_solar;
   Real fc12, fn14, fo16, fne20;
+  Real Tmin;
 
   // __mesaeos_lib_MOD_mesaeos_dtget( ...
   extern void mesaeos_dtget(Real *Rho, Real *T, Real *Xin,
@@ -54,6 +55,7 @@ Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
   // guess temperature assuming it's either
   // radiation- or gas-pressure dominated
   Real Tguess = std::min(Especific*(5.0/3.0-1.0)/R_gas, std::pow(egas/a_rad, 0.25));
+  Tguess = std::max( Tguess, Tmin );
 
   // MESA EOS call
   mesaeos_deget( &rho, &Especific, &Tguess, &X, &Z, &use_solar, &fc12,
@@ -80,10 +82,13 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
   // guess temperature assuming it's either
   // radiation- or gas-pressure dominated
   Real Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
+  Tguess = std::max( Tguess, Tmin );
 
   // first call EOS to get temperature
   mesaeos_dtget_t_given_ptotal( &rho, &Tguess, &pres, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &T, &gamma);
+
+  T = std::max( T, Tmin );
 
   if(debug) printf("intermediate T gamma from rho Tguess pres %5.3e %5.3e %5.3e %5.3e %5.3e\n",T,gamma,rho,Tguess,pres);
 
@@ -111,10 +116,13 @@ Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
   // guess temperature assuming it's either
   // radiation- or gas-pressure dominated
   Real Tguess = std::min(std::pow(3.0*pres/a_rad, 0.25), pres/R_gas/rho);
+  Tguess = std::max( Tguess, Tmin );
 
   // first call EOS to get temperature
   mesaeos_dtget_t_given_ptotal( &rho, &Tguess, &pres, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &T, &gamma);
+
+  T = std::max( T, Tmin );
 
   if(debug) printf("intermediate T gamma from rho Tguess pres %5.3e %5.3e %5.3e %5.3e %5.3e\n",T,gamma,rho,Tguess,pres);
 
@@ -148,6 +156,8 @@ void EquationOfState::InitEosConstants(ParameterInput *pin) {
   fn14  = pin->GetOrAddReal("problem","fn14", 0.0);
   fo16  = pin->GetOrAddReal("problem","fo16", 0.5);
   fne20 = pin->GetOrAddReal("problem","fne20",0.0);
+
+  Tmin = pin->GetOrAddReal("problem","Tmin",0.0);
 
   return;
 }
