@@ -36,7 +36,7 @@
 extern "C" {
 
 namespace {
-Real r0, rhoFloor, Tfloor, vmax;
+Real r0, rhoFloor, Tfloor, vmax, tdata;
 int NumToRead;
 std::vector<Real> rho_in, vr_in, temp_in;
 
@@ -61,6 +61,10 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   rhoFloor  = pin->GetReal("problem","rhoFloor");
   Tfloor    = pin->GetReal("problem","Tfloor");
   NumToRead = pin->GetInteger("problem","NumToRead");
+
+  // time of data in input files, needed for rescaling density
+  // negative if no difference from t0
+  tdata     = pin->GetOrAddReal("problem","tdata",-1.0);
 
   char rhoFile[256];
   char vrFile[256];
@@ -116,7 +120,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   //Real xc, yc, zc;
   Real temp, gamma, presJunk;
   Real Especific, EspecificFloor;
-  Real dv, mindv;
+  Real dv, mindv, scaleFactorRho, scaleFactorTemp;
   int index;
 
   Real X, Z, fc12, fn14, fo16, fne20;
@@ -139,6 +143,14 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
   t0 = r0/vmax;
 
+  if ( tdata > 0.0 ) {
+    scaleFactorRho  = std::pow( tdata/t0, 3.0 );
+    scaleFactorTemp = std::pow( tdata/t0, 2.0 );
+  } else {
+    scaleFactorRho  = 1.0;
+    scaleFactorTemp = 1.0;
+  }
+
   mesaeos_dtget( &rhoFloor, &Tfloor, &X, &Z, &use_solar, &fc12,
     &fn14, &fo16, &fne20, &presJunk, &EspecificFloor, &gamma);
 
@@ -160,16 +172,16 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           index = -1;
           mindv = 10.0e9;
           for (int l=0; l<NumToRead; l++) {
-            dv = abs(vr-vr_in[l]);
+            dv = std::abs(vr-vr_in[l]);
             if ( dv < mindv ) {
               mindv = dv;
               index = l;
             }
           }
-          //printf("for r %5.3e found neighbor id %d with rho %5.3e\n",r,index,rho_in[index]);
+          printf("for r vr %5.3e %5.3e found neighbor id %d with rho vr %5.3e %5.3e\n",r,vr,index,rho_in[index],vr_in[index]);
 
-          rho = rho_in[index];
-          temp = temp_in[index];
+          rho  = scaleFactorRho  * rho_in[index];
+          temp = scaleFactorTemp * temp_in[index];
 
           mesaeos_dtget( &rho, &temp, &X, &Z, &use_solar, &fc12,
             &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
