@@ -219,9 +219,9 @@
      >         species, chem_id, xa, X, Y, xz, abar, zbar, z2bar, ye, mass_correction,
      >         sumx, dabar_dx, dzbar_dx, dmc_dx)
 
-         max_iter = 1000
-         logT_tol = 0.05
-         logP_tol = 0.05
+         max_iter = 100000
+         logT_tol = 0.01
+         logP_tol = 0.01
          logT_bnd1 = log10_cr(T_guess/10.0)
          logT_bnd2 = log10_cr(T_guess*10.0)
          logP_at_bnd1 = log10_cr(press/10.0)
