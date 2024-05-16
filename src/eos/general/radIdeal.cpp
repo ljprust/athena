@@ -14,32 +14,25 @@
 // Athena++ headers
 #include "../eos.hpp"
 
+namespace{
+  const Real a = 7.56e-15;
+  const Real mu = 4.0/3.0;
+  const Real mProton = 1.6726e-24;
+  const Real kB = 1.3807e-16;
+}
+
 //takes in temperature and density and outputs pressure
 Real pressureEq(Real temp, Real rho) {
-  
-  Real a=7.56*std::pow(10.0,-15.0);
-  Real mu=4.0/3.0;
-  Real mProton=1.6726*std::pow(10.0,-24.0);
-  Real kB=1.3807*std::pow(10.0,-16.0);
-  return ((1/3.)*a*std::pow(temp,4.0))+rho*kB*temp/(mu*mProton);
+  return 1.0/3.0*a*std::pow(temp,4.0) + rho*kB*temp/(mu*mProton);
 }
 
 //takes in temperature and density and outputs internal energy
 Real energyEq(Real temp, Real rho) {
-
-  Real a=7.56*std::pow(10.0,-15.0);
-  Real mu=4.0/3.0;
-  Real mProton=1.6726*std::pow(10.0,-24.0);
-  Real kB=1.3807*std::pow(10.0,-16.0);
-  return (a*std::pow(temp,4.0))+1.5*rho*kB*temp/(mu*mProton);
+  return a*std::pow(temp,4.0) + 1.5*rho*kB*temp/(mu*mProton);
 }
 //uses bisection method to find roots of pressure equation to get temperature
 Real bisectPressure(Real rho, Real pres) {
   Real goal=.01*pres;
-  Real a=7.56*std::pow(10.0,-15.0);
-  Real mu=4.0/3.0;
-  Real mProton=1.6726*std::pow(10.0,-24.0);
-  Real kB=1.3807*std::pow(10.0,-16.0);
   Real fullRadTemp=std::pow((3.0*pres)/a,.25);
   Real fullGasTemp=pres*mu*mProton/(rho*kB);
   Real rightLim=std::min(fullRadTemp,fullGasTemp);
@@ -60,10 +53,6 @@ Real bisectPressure(Real rho, Real pres) {
 //uses bisection method to find roots of energy equation to get temperature
 Real bisectEnergy(Real rho, Real energy) {
   Real goal=.01*energy;
-  Real a=7.56*std::pow(10.0,-15.0);
-  Real mu=4.0/3.0;
-  Real mProton=1.6726*std::pow(10.0,-24.0);
-  Real kB=1.3807*std::pow(10.0,-16.0);
   Real fullRadTemp=std::pow((2.0*energy)/(3.0*a),.25);
   Real fullGasTemp=energy*2.0*mu*mProton/(3.0*rho*kB);
   Real rightLim=std::min(fullRadTemp,fullGasTemp);
@@ -92,39 +81,31 @@ Real findRootCubic(Real A, Real B) {
 //takes in pressure and density and solves the quartic analytically to get you temperature
 Real calcTemperaturePressure(Real rho, Real pres) {
   Real a,mu,mProton,kB,A,B,temp,z1,z2,y;
-  mProton=1.6726*std::pow(10.0,-24.0);
-  kB=1.3807*std::pow(10.0,-16.0);
-  mu=4.0/3.0;
-  a=7.56*std::pow(10.0,-15.0);
+
   A=3.0*kB*rho/(a*mu*mProton);
   B=3.0*pres/a;
   y=findRootCubic(A,B);
-  temp=std::pow(y,.5)*(std::pow(2.0*A/std::pow(y*y*y,.5)-1,.5)-1)/2.0;
+  temp=std::pow(y,0.5)*(std::pow(2.0*A/std::pow(y*y*y,0.5)-1.0,0.5)-1.0)/2.0;
   return temp;
 }
 
 //takes in energy and density and solves the quartic analytically to get you temeprature
 Real calcTemperatureEnergy(Real rho, Real energy) {
   Real a,mu,mProton,kB,A,B,temp,z1,z2,y;
-  mProton=1.6726*std::pow(10.0,-24.0);
-  kB=1.3807*std::pow(10.0,-16.0);
-  mu=4.0/3.0;
-  a=7.56*std::pow(10.0,-15.0);
+
   A=3.0*kB*rho/(2.0*a*mu*mProton);
   B=energy/(a);
   y=findRootCubic(A,B);
-  temp=std::pow(y,.5)*(std::pow(2.0*A/std::pow(y*y*y,.5)-1,.5)-1)/2.0; 
+  temp=std::pow(y,0.5)*(std::pow(2.0*A/std::pow(y*y*y,0.5)-1.0,0.5)-1.0)/2.0;
   return temp;
 }
 //takes in temperature pressure and density and returns gamma
 Real calcGamma(Real rho, Real pres) {
   Real gasPres, a, mu, mProton, kB, beta, temp;
-  mProton=1.6726*std::pow(10.0,-24.0);
-  kB=1.3807*std::pow(10.0,-16.0);
-  temp=calcTemperaturePressure(rho, pres);
-  mu=4.0/3.0;
-  gasPres=rho*kB*temp/(mu*mProton);
-  beta=gasPres/pres;
+
+  temp = calcTemperaturePressure(rho, pres);
+  gasPres = rho*kB*temp/(mu*mProton);
+  beta = gasPres/pres;
   return (32.0-24.0*beta-3.0*beta*beta)/(24.0-21.0*beta);
 }
 //----------------------------------------------------------------------------------------
