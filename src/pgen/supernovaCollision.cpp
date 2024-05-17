@@ -47,6 +47,8 @@ void SNOuterX1(MeshBlock* pmb, Coordinates* pco, AthenaArray<Real>& prim, FaceFi
 void SNInnerX1(MeshBlock* pmb, Coordinates* pco, AthenaArray<Real>& prim, FaceField& b,
     Real time, Real dt,
     int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+Real MyTimeStep(MeshBlock* pmb);
+
 namespace {
     // problem parameters which are useful to make global to this file
     Real rho0, p0, vel0, gammagas, minRadius;
@@ -110,9 +112,11 @@ void Mesh::InitUserMeshData(ParameterInput* pin) {
     mProton = 1.6726e-24;
     kB = 1.3807e-16;
 
-        // tell athena to use our user-defined boundaries
     EnrollUserBoundaryFunction(BoundaryFace::outer_x1, SNOuterX1);
     EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
+
+    EnrollUserTimeStepFunction(MyTimeStep);
+
     return;
 }
 
@@ -235,6 +239,17 @@ void SNInnerX1(MeshBlock* pmb, Coordinates* pco, AthenaArray<Real>& prim, FaceFi
             }
         }
     }
+}
+
+Real MyTimeStep(MeshBlock *pmb) {
+  Real time = pmb ->pmy_mesh -> time;
+  Real dt=pmb->pmy_mesh ->dt;
+  Real min_dt=1e2;
+  if (time<.01) {
+          min_dt=std::min(dt,1e-4);
+  } // calculate your own time step here
+
+  return min_dt;
 }
 /*
 Real MyTimeStep(MeshBlock *pmb) {
