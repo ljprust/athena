@@ -69,18 +69,18 @@ Real energyEqPgen(Real temp, Real rho) {
 
 Real findRoot(Real A, Real B) {
     Real z3 = std::pow(81.0 * std::pow(A, 4.0) + 768.0 * std::pow(B, 3.0), .5) + 9.0 * A * A;
-    Real numerator = std::pow(2.0, 1 / 3.) * std::pow(z3, 2.0 / 3.0) - 8.0 * std::pow(3.0, 1.0 / 3.0) * B;
+    Real numerator = std::pow(2.0, 1.0 / 3.0) * std::pow(z3, 2.0 / 3.0) - 8.0 * std::pow(3.0, 1.0 / 3.0) * B;
     Real denominator = std::pow(6.0, 2.0 / 3.0) * std::pow(z3, 1.0 / 3.0);
     return numerator / denominator;
-
 }
+
 //takes in pressure and density and solves the quartic analytically to get you temperature
 Real calcTemperaturePressurePgen(Real rho, Real pres) {
     Real A, B, temp, y;
     A = 3.0 * kB * rho / (a * mu * mProton);
     B = 3.0 * pres / a;
     y = findRoot(A, B);
-    temp = std::pow(y, .5) * (std::pow(2.0 * A / std::pow(y * y * y, .5) - 1, .5) - 1) / 2;
+    temp = std::pow(y, 0.5) * (std::pow(2.0 * A / std::pow(y * y * y, 0.5) - 1.0, 0.5) - 1.0) / 2.0;
     return temp;
 }
 //========================================================================================
@@ -157,7 +157,7 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
                     //temp=2*std::pow(10.0,5.0);
                     phydro->u(IDN, k, j, i) = rho;
                     phydro->u(IM1, k, j, i) = rho*v;
-                    phydro->u(IEN, k, j, i) = 0.5*rho*v*v + energyEqPgen(temp, rho);
+                    //phydro->u(IEN, k, j, i) = 0.5*rho*v*v + energyEqPgen(temp, rho);
                     phydro->u(IEN, k, j, i) = 0.5*rho*v*v + 1.5*pres;
 		                //pscalars->s(0,k,j,i)=0.0;
                 }

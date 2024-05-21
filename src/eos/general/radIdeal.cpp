@@ -80,7 +80,7 @@ Real findRootCubic(Real A, Real B) {
 }
 //takes in pressure and density and solves the quartic analytically to get you temperature
 Real calcTemperaturePressure(Real rho, Real pres) {
-  Real a,mu,mProton,kB,A,B,temp,z1,z2,y;
+  Real A,B,temp,z1,z2,y;
 
   A=3.0*kB*rho/(a*mu*mProton);
   B=3.0*pres/a;
@@ -91,7 +91,7 @@ Real calcTemperaturePressure(Real rho, Real pres) {
 
 //takes in energy and density and solves the quartic analytically to get you temeprature
 Real calcTemperatureEnergy(Real rho, Real energy) {
-  Real a,mu,mProton,kB,A,B,temp,z1,z2,y;
+  Real A,B,temp,z1,z2,y;
 
   A=3.0*kB*rho/(2.0*a*mu*mProton);
   B=energy/(a);
@@ -101,7 +101,7 @@ Real calcTemperatureEnergy(Real rho, Real energy) {
 }
 //takes in temperature pressure and density and returns gamma
 Real calcGamma(Real rho, Real pres) {
-  Real gasPres, a, mu, mProton, kB, beta, temp;
+  Real gasPres, beta, temp;
 
   temp = calcTemperaturePressure(rho, pres);
   gasPres = rho*kB*temp/(mu*mProton);
