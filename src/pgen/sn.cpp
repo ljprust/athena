@@ -41,14 +41,18 @@
 void SNOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                Real time, Real dt,
                int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+
 // inject SN ejecta
 void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                Real time, Real dt,
                int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
+// set time step
+Real MyTimeStep(MeshBlock* pmb);
+
 namespace {
 // problem parameters which are useful to make global to this file
-Real rho0, p0, gammagas;
+Real rho0, p0, gammagas, gasEntropy;
 bool diode;
 Real Rej, Eej, Mej, vmax;
 } // namespace
@@ -62,21 +66,31 @@ Real Rej, Eej, Mej, vmax;
 
 // read parameters from input file
 void Mesh::InitUserMeshData(ParameterInput *pin) {
+
   // ambient medium properties
-  rho0     = pin->GetOrAddReal("problem","rho0",1.0);
-  p0       = pin->GetOrAddReal("problem","p0",1.0);
-  // gamma law for gas
-  gammagas = pin->GetOrAddReal("hydro","gamma",0.0);
+  rho0       = pin->GetOrAddReal("problem","rho0",1.0);
+  p0         = pin->GetOrAddReal("problem","p0",1.0);
+
+  // information for thermal energy
+  gammagas   = pin->GetReal("hydro","gamma");
+  gasEntropy = pin->GetReal("problem","gasEntropy");
+
   // use diode condition for outflow
-  diode    = pin->GetOrAddBoolean("problem","diode",false);
+  diode      = pin->GetOrAddBoolean("problem","diode",false);
+
   // properties of ejecta
-  Rej      = pin->GetOrAddReal("problem","Rejecta",1.0);
-  Eej      = pin->GetOrAddReal("problem","Eejecta",1.0);
-  Mej      = pin->GetOrAddReal("problem","Mejecta",1.0);
-  vmax     = pin->GetOrAddReal("problem","vmax",1.0);
+  Rej        = pin->GetOrAddReal("problem","Rejecta",1.0);
+  Eej        = pin->GetOrAddReal("problem","Eejecta",1.0);
+  Mej        = pin->GetOrAddReal("problem","Mejecta",1.0);
+  vmax       = pin->GetOrAddReal("problem","vmax",1.0);
+
   // tell athena to use our user-defined boundaries
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, SNOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
+
+  // set a very small timestep initially
+  EnrollUserTimeStepFunction(MyTimeStep);
+
   return;
 }
 
@@ -87,10 +101,11 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
-Real r, t0, v0sq, v, rho, pres;
+Real r, t0, v0sq, v, rho, pres, prefactor;
 
 t0 = Rej/vmax;
 v0sq = 4.0/3.0*Eej/Mej;
+prefactor = std::pow(3.0/4.0/3.14159/Eej, 1.5) * std::pow(Mej, 2.5);
 
   //  Initialize density and momenta
   for (int k=ks; k<=ke; ++k) {
@@ -110,11 +125,10 @@ v0sq = 4.0/3.0*Eej/Mej;
         } else {
           // ejecta profile
           v = vmax*r/Rej;
-          rho = std::pow(3.0/4.0/3.14159/Eej,1.5)*std::pow(Mej,2.5)
-                *std::exp(-v*v/v0sq)/t0/t0/t0;
-          pres = std::pow(rho,gammagas);
+          rho = prefactor * std::exp( -v*v/v0sq ) /t0/t0/t0;
+          pres = gasEntropy * std::pow(rho,1.6666666666667);
           phydro->u(IDN,k,j,i) = rho;
-          phydro->u(IM1,k,j,i) = v;
+          phydro->u(IM1,k,j,i) = rho*v;
           phydro->u(IEN,k,j,i) = pres/(gammagas-1.0) + 0.5*rho*v*v;
         }
 
@@ -174,7 +188,7 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
   vel = 1.0/(time/Rej + 1.0/vmax);
   prefactor = std::pow(3.0/4.0/3.14159/Eej,1.5)*std::pow(Mej,2.5);
   rho = prefactor*std::exp(-vel*vel/v0sq)*std::pow(time+t0,-3.0);
-  pres = std::pow(rho,gammagas);
+  pres = gasEntropy * std::pow(rho,1.6666666666667);
 
   if ( Rej==0.0 || Eej==0.0 || Mej==0.0 || vmax==0.0 ) {
     std::stringstream msg;
@@ -198,4 +212,16 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
   }
 }
 
-//namespace {}
+Real MyTimeStep(MeshBlock *pmb) {
+
+  Real time   = pmb->pmy_mesh->time;
+  Real dt     = pmb->pmy_mesh->dt;
+  Real min_dt = 1.0e2;
+
+  if ( time<1.0e-2 ) {
+    min_dt = std::min(dt, 1.0e-4);
+  }
+
+  return min_dt;
+}
+
