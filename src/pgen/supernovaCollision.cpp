@@ -55,6 +55,7 @@ namespace {
     bool diode;
     Real Rej, Eej, Mej, vmax;
     Real a, mu, mProton, kB;
+    Real smallDt, largeDt, smallDtDuration;
 } // namespace
 //Some Useful Functions
 //gets pressure given temperature and density
@@ -106,6 +107,10 @@ void Mesh::InitUserMeshData(ParameterInput* pin) {
     Mej = pin->GetOrAddReal("problem", "Mej", 1.0);
     vmax = pin->GetOrAddReal("problem", "vmax", 1.0);
     minRadius = pin->GetOrAddReal("mesh", "x1min", 1.0);
+
+    smallDt = pin->GetReal("problem", "smallDt");
+    largeDt = pin->GetReal("problem", "largeDt");
+    smallDtDuration = pin->GetReal("problem", "smallDtDuration");
 
     a = 7.56e-15;
     mu = 2.0;
@@ -242,27 +247,17 @@ void SNInnerX1(MeshBlock* pmb, Coordinates* pco, AthenaArray<Real>& prim, FaceFi
 }
 
 Real MyTimeStep(MeshBlock *pmb) {
-  Real time = pmb ->pmy_mesh -> time;
-  Real dt=pmb->pmy_mesh ->dt;
-  Real min_dt=1e2;
-  if (time<.01) {
-          min_dt=std::min(dt,1e-4);
-  } // calculate your own time step here
+  Real time   = pmb->pmy_mesh->time;
+  Real dt     = pmb->pmy_mesh->dt;
+  Real min_dt = largeDt;
+
+  if ( time < smallDtDuration ) {
+          min_dt = std::min( dt, smallDt );
+  }
 
   return min_dt;
 }
 /*
-Real MyTimeStep(MeshBlock *pmb) {
-  Real time = pmb ->pmy_mesh -> time;
-  Real dt=pmb->pmy_mesh ->dt;
-  Real min_dt=1e2;
-  if (time<.01) {
-          min_dt=std::min(dt,1e-4);
-  } // calculate your own time step here
-
-  return min_dt;
-}
-
 void SNInnerX1Wind(MeshBlock* pmb, Coordinates* pco, AthenaArray<Real>& prim, FaceField& b,
     Real time, Real dt,
     int il, int iu, int jl, int ju, int kl, int ku, int ngh) {

@@ -55,6 +55,7 @@ namespace {
 Real rho0, p0, gammagas, gasEntropy;
 bool diode;
 Real Rej, Eej, Mej, vmax;
+Real smallDt, largeDt, smallDtDuration;
 } // namespace
 
 //========================================================================================
@@ -83,6 +84,11 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   Eej        = pin->GetOrAddReal("problem","Eejecta",1.0);
   Mej        = pin->GetOrAddReal("problem","Mejecta",1.0);
   vmax       = pin->GetOrAddReal("problem","vmax",1.0);
+
+  // properties of initial timestep
+  smallDt = pin->GetReal("problem", "smallDt");
+  largeDt = pin->GetReal("problem", "largeDt");
+  smallDtDuration = pin->GetReal("problem", "smallDtDuration");
 
   // tell athena to use our user-defined boundaries
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, SNOuterX1);
@@ -213,15 +219,13 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
 }
 
 Real MyTimeStep(MeshBlock *pmb) {
-
   Real time   = pmb->pmy_mesh->time;
   Real dt     = pmb->pmy_mesh->dt;
-  Real min_dt = 1.0e2;
+  Real min_dt = largeDt;
 
-  if ( time<1.0e-2 ) {
-    min_dt = std::min(dt, 1.0e-4);
+  if ( time < smallDtDuration ) {
+    min_dt = std::min( dt, smallDt );
   }
 
   return min_dt;
 }
-
