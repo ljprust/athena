@@ -36,9 +36,10 @@
 extern "C" {
 
 namespace {
-Real r0, rhoFloor, Tfloor, vmax, tdata;
+Real r0, rhoFloor, Tfloor, vmax, tdata, gammaGas;
 int NumToRead;
 std::vector<Real> rho_in, vr_in, temp_in;
+bool useGammaLaw;
 
 extern void mesaeos_dtget(Real *Rho, Real *T, Real *Xin,
   Real *Zin, int *use_solar, Real *fc12, Real *fn14, Real *fo16, Real *fne20,
@@ -61,6 +62,8 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   rhoFloor  = pin->GetReal("problem","rhoFloor");
   Tfloor    = pin->GetReal("problem","Tfloor");
   NumToRead = pin->GetInteger("problem","NumToRead");
+  useGammaLaw = pin->GetOrAddBoolean("problem","useGammaLaw");
+  gammaGas  = pin->GetOrAddReal("hydro","gamma",1.666666667);
 
   // time of data in input files, needed for rescaling density
   // negative if no difference from t0
@@ -103,8 +106,10 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   strncpy(cMesaDir, MesaDir.c_str(), sizeof(cMesaDir));
   cMesaDir[sizeof(cMesaDir) - 1] = 0;
 
-  printf("\nCalling MESA EOS init from problem generator ...\n");
-  mesaeos_init(cMesaDir);
+  if (!useGammaLaw) {
+    printf("\nCalling MESA EOS init from problem generator ...\n");
+    mesaeos_init(cMesaDir);
+  }
 
   return;
 }
@@ -151,10 +156,11 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
     scaleFactorTemp = 1.0;
   }
 
-  mesaeos_dtget( &rhoFloor, &Tfloor, &X, &Z, &use_solar, &fc12,
-    &fn14, &fo16, &fne20, &presJunk, &EspecificFloor, &gamma);
-
-  printf("initial energy density floor = %5.3e\n",EspecificFloor*rhoFloor);
+  if(!useGammaLaw) {
+    mesaeos_dtget( &rhoFloor, &Tfloor, &X, &Z, &use_solar, &fc12,
+      &fn14, &fo16, &fne20, &presJunk, &EspecificFloor, &gamma);
+    printf("initial energy density floor = %5.3e\n",EspecificFloor*rhoFloor);
+  }
 
   for (int k=ks; k<=ke; ++k) {
     //z = pcoord->x3v(k) - zc;
@@ -183,20 +189,30 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           rho  = scaleFactorRho  * rho_in[index];
           temp = scaleFactorTemp * temp_in[index];
 
-          mesaeos_dtget( &rho, &temp, &X, &Z, &use_solar, &fc12,
-            &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
+          if(!useGammaLaw) {
+            mesaeos_dtget( &rho, &temp, &X, &Z, &use_solar, &fc12,
+              &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
+            phydro->u(IEN,k,j,i) = Especific*rho + 0.5*rho*vr*vr;
+          } else {
+            // internal energy = ~10% kinetic
+            phydro->u(IEN,k,j,i) = 1.1*0.5*rho*3.0e9*3.0e9;
+          }
 
           phydro->u(IDN,k,j,i) = rho;
           phydro->u(IM1,k,j,i) = rho*vr; // rho*x/t0;
           phydro->u(IM2,k,j,i) = 0.0; // rho*y/t0;
           phydro->u(IM3,k,j,i) = 0.0; // rho*z/t0;
-          phydro->u(IEN,k,j,i) = Especific*rho + 0.5*rho*vr*vr;
         } else {
           phydro->u(IDN,k,j,i) = rhoFloor;
           phydro->u(IM1,k,j,i) = 0.0;
           phydro->u(IM2,k,j,i) = 0.0;
           phydro->u(IM3,k,j,i) = 0.0;
-          phydro->u(IEN,k,j,i) = EspecificFloor*rhoFloor; // + 0.5*rho0R*vel0R*vel0R;
+          if(!useGammaLaw) {
+            phydro->u(IEN,k,j,i) = EspecificFloor*rhoFloor; // + 0.5*rho0R*vel0R*vel0R;
+          } else {
+            // internal energy < 10% kinetic
+            phydro->u(IEN,k,j,i) = 1.1*0.5*rho*3.0e9*3.0e9;
+          }
         }
       }
     }
