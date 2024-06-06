@@ -41,6 +41,9 @@ void EquationOfState::ConservedToPrimitive(
     AthenaArray<Real> &prim, AthenaArray<Real> &bcc,
     Coordinates *pco, int il, int iu, int jl, int ju, int kl, int ku) {
   Real gm1 = GetGamma() - 1.0;
+  Real threshold = 1.0e-16;
+  Real x1, x2, x3;
+  bool isBound;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
@@ -58,6 +61,21 @@ void EquationOfState::ConservedToPrimitive(
         Real& w_vz = prim(IVZ,k,j,i);
         Real& w_p  = prim(IPR,k,j,i);
 
+        if(u_d < threshold) {
+          x1 = pco->x1v(i); x2 = pco->x2v(j); x3 = pco->x3v(k);
+          isBound = pco->IsBoundaryCell(k,j,i-1) ||
+                    pco->IsBoundaryCell(k,j,i+1) ||
+                    pco->IsBoundaryCell(k,j-1,i) ||
+                    pco->IsBoundaryCell(k,j+1,i) ||
+                    pco->IsBoundaryCell(k-1,j,i) ||
+                    pco->IsBoundaryCell(k+1,j,i);
+          if(isBound) {
+            printf("low edge dens: %5.3e %5.3e %5.3e %5.3e %5.3e\n",u_d,u_e,x1,x2,x3);
+          } else {
+            printf("low dens: %5.3e %5.3e %5.3e %5.3e %5.3e\n");
+          }
+        }
+
         // apply density floor, without changing momentum or energy
         u_d = (u_d > density_floor_) ?  u_d : density_floor_;
         w_d = u_d;
@@ -69,6 +87,21 @@ void EquationOfState::ConservedToPrimitive(
 
         Real e_k = 0.5*di*(SQR(u_m1) + SQR(u_m2) + SQR(u_m3));
         w_p = gm1*(u_e - e_k);
+
+        if(w_p < threshold) {
+          x1 = pco->x1v(i); x2 = pco->x2v(j); x3 = pco->x3v(k);
+          isBound = pco->IsBoundaryCell(k,j,i-1) ||
+                    pco->IsBoundaryCell(k,j,i+1) ||
+                    pco->IsBoundaryCell(k,j-1,i) ||
+                    pco->IsBoundaryCell(k,j+1,i) ||
+                    pco->IsBoundaryCell(k-1,j,i) ||
+                    pco->IsBoundaryCell(k+1,j,i);
+          if(isBound) {
+            printf("low edge pres: %5.3e %5.3e %5.3e %5.3e %5.3e\n",u_d,u_e,x1,x2,x3);
+          } else {
+            printf("low pres: %5.3e %5.3e %5.3e %5.3e %5.3e\n");
+          }
+        }
 
         // apply pressure floor, correct total energy
         u_e = (w_p > pressure_floor_) ?  u_e : ((pressure_floor_/gm1) + e_k);
