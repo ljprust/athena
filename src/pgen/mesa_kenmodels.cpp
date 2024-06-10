@@ -36,7 +36,7 @@
 extern "C" {
 
 namespace {
-Real r0, rhoFloor, Tfloor, vmax, tdata, gammaGas;
+Real r0, rhoFloor, Tfloor, vmax, tdata, gammaGas, Rgas;
 int NumToRead;
 std::vector<Real> rho_in, vr_in, temp_in;
 bool useGammaLaw;
@@ -62,12 +62,14 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   rhoFloor  = pin->GetReal("problem","rhoFloor");
   Tfloor    = pin->GetReal("problem","Tfloor");
   NumToRead = pin->GetInteger("problem","NumToRead");
-  useGammaLaw = pin->GetOrAddBoolean("problem","useGammaLaw");
+  useGammaLaw = pin->GetBoolean("problem","useGammaLaw");
   gammaGas  = pin->GetOrAddReal("hydro","gamma",1.666666667);
 
   // time of data in input files, needed for rescaling density
   // negative if no difference from t0
   tdata     = pin->GetOrAddReal("problem","tdata",-1.0);
+
+  Rgas = 8.314e7; // cgs
 
   char rhoFile[256];
   char vrFile[256];
@@ -194,8 +196,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
               &fn14, &fo16, &fne20, &presJunk, &Especific, &gamma);
             phydro->u(IEN,k,j,i) = Especific*rho + 0.5*rho*vr*vr;
           } else {
-            // internal energy = ~10% kinetic
-            phydro->u(IEN,k,j,i) = 1.1*0.5*rho*3.0e9*3.0e9;
+            phydro->u(IEN,k,j,i) = Rgas*rho*temp/(gammaGas-1.0) + 0.5*rho*vr*vr;
           }
 
           phydro->u(IDN,k,j,i) = rho;
@@ -210,8 +211,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           if(!useGammaLaw) {
             phydro->u(IEN,k,j,i) = EspecificFloor*rhoFloor; // + 0.5*rho0R*vel0R*vel0R;
           } else {
-            // internal energy < 10% kinetic
-            phydro->u(IEN,k,j,i) = 1.1*0.5*rho*3.0e9*3.0e9;
+            phydro->u(IEN,k,j,i) = Rgas*rho*temp/(gammaGas-1.0);
           }
         }
       }
