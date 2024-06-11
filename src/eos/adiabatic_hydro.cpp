@@ -69,11 +69,11 @@ void EquationOfState::ConservedToPrimitive(
                     pco->IsBoundaryCell(k,j+1,i) ||
                     pco->IsBoundaryCell(k-1,j,i) ||
                     pco->IsBoundaryCell(k+1,j,i);
-          if(isBound) {
-            printf("low edge dens: %5.3e %5.3e %5.3e %5.3e %5.3e\n",u_d,u_e,x1,x2,x3);
-          } else {
-            printf("low dens: %5.3e %5.3e %5.3e %5.3e %5.3e\n");
-          }
+          //if(isBound) {
+          //  printf("low edge dens: %5.3e %5.3e %5.3e %5.3e %5.3e\n",u_d,u_e,x1,x2,x3);
+          //} else {
+          //  printf("low dens: %5.3e %5.3e %5.3e %5.3e %5.3e\n",u_d,u_e,x1,x2,x3);
+          //}
         }
 
         // apply density floor, without changing momentum or energy
@@ -96,11 +96,11 @@ void EquationOfState::ConservedToPrimitive(
                     pco->IsBoundaryCell(k,j+1,i) ||
                     pco->IsBoundaryCell(k-1,j,i) ||
                     pco->IsBoundaryCell(k+1,j,i);
-          if(isBound) {
-            printf("low edge pres: %5.3e %5.3e %5.3e %5.3e %5.3e\n",u_d,u_e,x1,x2,x3);
-          } else {
-            printf("low pres: %5.3e %5.3e %5.3e %5.3e %5.3e\n");
-          }
+          //if(isBound) {
+          //  printf("low edge pres: %5.3e %5.3e %5.3e %5.3e %5.3e\n",u_d,u_e,x1,x2,x3);
+          //} else {
+          //  printf("low pres: %5.3e %5.3e %5.3e %5.3e %5.3e\n",u_d,u_e,u_m1,u_m2,u_m3);
+          //}
         }
 
         // apply pressure floor, correct total energy
