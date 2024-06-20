@@ -92,6 +92,7 @@ Real rho0, vel0, p0, gammagas, semimajor, gmstar;
 bool diode, hydrostatic, expgrad;
 Real pvacuum, dvacuum, densgrad;
 Real xvac, yvac, zvac, rvac;
+Real four_pi_G, accretorMass;
 } // namespace
 
 //========================================================================================
@@ -102,20 +103,22 @@ Real xvac, yvac, zvac, rvac;
 //========================================================================================
 
 void Mesh::InitUserMeshData(ParameterInput *pin) {
-  Real four_pi_G = pin->GetReal("problem","four_pi_G");
+  four_pi_G    = pin->GetReal("problem","four_pi_G");
   SetFourPiG(four_pi_G);
-  rho0 = pin->GetOrAddReal("problem","rho0",1.0);
-  vel0 = pin->GetOrAddReal("problem","vel0",1.0);
-  p0 = pin->GetOrAddReal("problem","p0",1.0);
-  gammagas = pin->GetOrAddReal("hydro","gamma",0.0);
-  diode = pin->GetOrAddBoolean("problem","diode",false);
-  hydrostatic = pin->GetOrAddBoolean("problem","hydrostatic",false);
-  semimajor = pin->GetOrAddReal("problem","semimajor",0.0);
-  gmstar = pin->GetOrAddReal("problem","gm_star",0.0);
-  pvacuum = pin->GetOrAddReal("problem","pvacuum",0.0);
-  dvacuum = pin->GetOrAddReal("problem","dvacuum",0.0);
-  densgrad = pin->GetOrAddReal("problem","densgrad",0.0);
-  expgrad = pin->GetOrAddBoolean("problem","expgrad",false);
+  rho0         = pin->GetOrAddReal("problem","rho0",1.0);
+  vel0         = pin->GetOrAddReal("problem","vel0",1.0);
+  p0           = pin->GetOrAddReal("problem","p0",1.0);
+  gammagas     = pin->GetOrAddReal("hydro","gamma",0.0);
+  diode        = pin->GetOrAddBoolean("problem","diode",false);
+  hydrostatic  = pin->GetOrAddBoolean("problem","hydrostatic",false);
+  semimajor    = pin->GetOrAddReal("problem","semimajor",0.0);
+  gmstar       = pin->GetOrAddReal("problem","gm_star",0.0);
+  pvacuum      = pin->GetOrAddReal("problem","pvacuum",0.0);
+  dvacuum      = pin->GetOrAddReal("problem","dvacuum",0.0);
+  densgrad     = pin->GetOrAddReal("problem","densgrad",0.0);
+  expgrad      = pin->GetOrAddBoolean("problem","expgrad",false);
+  accretorMass = pin->GetOrAddReal("problem","accretorMass",0.0);
+
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnelOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnelInnerX1);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x2, WindTunnelOuterX2);
@@ -441,8 +444,12 @@ void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
                   AthenaArray<Real> &cons_scalar) {
 
   Real x, y, z;
-  Real r2_relative;
-  bool invac;
+  Real r_relative, accretorDens, accretorRad;
+  bool inVacuum;
+  bool inAccretor;
+
+  accretorRad = rvac/2.0;
+  accretorDens = accretorMass/(4.0/3.0*3.14159*accretorRad*accretorRad*accretorRad);
 
   for (int k=pmb->ks; k<=pmb->ke; ++k) {
     for (int j=pmb->js; j<=pmb->je; ++j) {
@@ -457,16 +464,22 @@ void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
               << "invalid coordinate system" << std::endl;
           ATHENA_ERROR(msg);
         }
-        r2_relative = x*x + y*y + z*z;
-        invac = rvac*rvac > r2_relative;
-        if (invac) {
+        r_relative = std::sqrt(x*x + y*y + z*z);
+        inVacuum   = rvac > r_relative;
+        inAccetor  = rvac/2.0 > r_relative;
+
+        if (inAccretor) {
+          cons(IDN,k,j,i) = accretorDens;
+          cons(IVX,k,j,i) = 0.0;
+          cons(IVY,k,j,i) = 0.0;
+          cons(IVZ,k,j,i) = 0.0;
+          cons(IEN,k,j,i) = pvacuum/(gammagas-1.0);
+        } else if (inVacuum) {
           cons(IDN,k,j,i) = dvacuum;
           cons(IVX,k,j,i) = 0.0;
           cons(IVY,k,j,i) = 0.0;
           cons(IVZ,k,j,i) = 0.0;
-          if (NON_BAROTROPIC_EOS) {
-            cons(IEN,k,j,i) = pvacuum/(gammagas-1.0);
-          }
+          cons(IEN,k,j,i) = pvacuum/(gammagas-1.0);
         }
       }
     }
@@ -573,8 +586,8 @@ void StaticOuterX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, Fa
         prim(IEN,ku+k,j,i) = p0;
       }
     }
-  } 
-} 
+  }
+}
 
 namespace {
 //----------------------------------------------------------------------------------------
