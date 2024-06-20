@@ -464,9 +464,9 @@ void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
               << "invalid coordinate system" << std::endl;
           ATHENA_ERROR(msg);
         }
-        r_relative = std::sqrt(x*x + y*y + z*z);
-        inVacuum   = rvac > r_relative;
-        inAccetor  = rvac/2.0 > r_relative;
+        r_relative  = std::sqrt(x*x + y*y + z*z);
+        inVacuum    = rvac > r_relative;
+        inAccretor  = rvac/2.0 > r_relative;
 
         if (inAccretor) {
           cons(IDN,k,j,i) = accretorDens;
