@@ -85,6 +85,9 @@ void StaticOuterX3(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim,Fac
                  Real time, Real dt,
                  int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
+void srcmask(AthenaArray<Real> &src, int is, int ie, int js, int je,
+             int ks, int ke, const MGCoordinates &coord);
+
 namespace {
 void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
 // problem parameters which are useful to make global to this file
@@ -133,6 +136,8 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   EnrollUserBoundaryFunction(BoundaryFace::inner_x3, StaticInnerX3);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x3, StaticOuterX3);
 */
+  EnrollUserMGGravitySourceMaskFunction(srcmask);
+
   xvac = pin->GetOrAddReal("problem","xvac",0.0);
   yvac = pin->GetOrAddReal("problem","yvac",0.0);
   zvac = pin->GetOrAddReal("problem","zvac",0.0);
@@ -481,6 +486,33 @@ void VacuumSource(MeshBlock *pmb, const Real time, const Real dt,
           cons(IVZ,k,j,i) = 0.0;
           cons(IEN,k,j,i) = pvacuum/(gammagas-1.0);
         }
+      }
+    }
+  }
+  return;
+}
+
+void srcmask(AthenaArray<Real> &src, int is, int ie, int js, int je,
+             int ks, int ke, const MGCoordinates &coord) {
+
+  Real x, y, z, r_relative;
+
+  for (int k=ks; k<=ke; ++k) {
+    for (int j=js; j<=je; ++j) {
+      for (int i=is; i<=ie; ++i) {
+        if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
+          x = coord.x1v(i) - xvac;
+          y = coord.x2v(j) - yvac;
+          z = coord.x3v(k) - zvac;
+        } else {
+          std::stringstream msg;
+          msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
+              << "invalid coordinate system" << std::endl;
+          ATHENA_ERROR(msg);
+        }
+        r_relative  = std::sqrt(x*x + y*y + z*z);
+        if (r_relative > rvac)
+          src(k, j, i) = 0.0;
       }
     }
   }
