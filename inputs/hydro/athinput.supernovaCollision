@@ -1,0 +1,72 @@
+<comment>
+problem   = supernovaCollision
+reference =
+configure = --prob=supernovaCollision --coord=spherical-polar
+
+<job>
+problem_id  = wt      # problem ID: basename of output filenames
+
+<output1>
+file_type   = hdf5       # VTK data dump
+variable    = prim      #
+dt          = 10.0 # 1.0    # time increment between outputs
+cartesian_vector = false
+
+#<output2>
+#file_type = rst
+#dt        = 100.0
+
+<time>
+cfl_number  = 0.3       # The Courant, Friedrichs, & Lewy (CFL) Number
+nlim        = -1        # cycle limit
+tlim        = 1000.0 # 1000.0      # time limit
+integrator  = vl2       # time integration algorithm
+xorder      = 2         # order of spatial reconstruction
+ncycle_out  = 1.0         # interval for stdout summary info
+
+<mesh>
+nx1         = 2160             # Number of zones in X1-direction
+x1min       = 0.9e10 # 0.9e10            # minimum value of X1
+x1max       = 7.5e11 # 7.5e11            # maximum value of X1
+ix1_bc      = user          # Inner-X1 boundary condition flag
+ox1_bc      = user      # Outer-X1 boundary condition flag
+x1rat       = 1.0013       # non-uniform grid ratio
+
+nx2         = 200            # Number of zones in X2-direction
+x2min       = 0            # minimum value of X2
+x2max       = 1.4 # 6.2831853071795862   # maximum value of X2
+ix2_bc      = polar       # Inner-X2 boundary condition flag
+ox2_bc      = outflow       # Outer-X2 boundary condition flag
+
+nx3         = 10              # Number of zones in X3-direction
+x3min       = 0.0           # minimum value of X3
+x3max       = 6.2831853071795862            # maximum value of X3
+ix3_bc      = periodic       # Inner-X3 boundary condition flag
+ox3_bc      = periodic       # Outer-X3 boundary condition flag
+
+<meshblock>
+nx1 = 108
+nx2 = 100
+nx3 = 10
+
+<hydro>
+gamma           = 1.33333333333333 # gamma = C_p/C_v
+
+<problem>
+Rej	    = 0.9e10 # 0.9e10
+Eej	    = 0.97e51
+Mej	    = 1.789623e33
+vmax        = 2.53e9
+rho0        = 1.0e-7
+vel0        = 0.0
+p0          = 5.0e8
+diode       = true
+smallDt     = 1.0e-4
+largeDt     = 1.0e2
+smallDtDuration = 1.0e-2
+
+boundary_center_x1 = 1.88616e10
+boundary_center_x2 = 0.0
+boundary_center_x3 = 0.0
+boundary_radius    = 5.568e9
+
