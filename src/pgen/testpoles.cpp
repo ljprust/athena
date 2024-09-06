@@ -177,6 +177,7 @@ void Mesh::InitUserMeshData(ParameterInput* pin) {
 void MeshBlock::ProblemGenerator(ParameterInput* pin) {
 
     Real r, theta, x, y, dist2, minDist2;
+    Real vr, rho, pres;
     int index;
     Real kappaES = opacity * density0 * l0;
     Real R = 8.3145 * std::pow(10.0, 7.0);
@@ -193,9 +194,15 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
                     r = pcoord->x1v(i);
                     theta = pcoord->x2v(j);
 
-                    Real vr   = r/initialTime;
-                    Real rho  = prefactor*std::exp(-vr*vr/v0sq);
-                    Real pres = 0.7e14*std::pow(rho,1.6666666666667);
+                    if (r<Rej) {
+                        vr   = r/initialTime;
+                        rho  = prefactor*std::exp(-vr*vr/v0sq);
+                        pres = 0.7e14*std::pow(rho,1.6666666666667);
+                    } else {
+                        vr   = 0.0;
+                        rho  = rho0;
+                        pres = p0;
+                    }
 
                     //x = r * std::cos(theta) * l0;
                     //y = r * std::sin(theta) * l0;
