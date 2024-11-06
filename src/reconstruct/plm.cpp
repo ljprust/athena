@@ -118,6 +118,10 @@ void Reconstruction::PiecewiseLinearX1(
     }
   }
 
+  for (int i=il; i<=iu; ++i) {
+    pco->pressureGradients(0,k,j,i) = dwm(IPR,i)/pco->dx1f(i);
+  }
+
   if (characteristic_projection) {
 #pragma omp simd
     for (int i=il; i<=iu; ++i) {
@@ -233,6 +237,10 @@ void Reconstruction::PiecewiseLinearX2(
     }
   }
 
+  for (int i=il; i<=iu; ++i) {
+    pco->pressureGradients(1,k,j,i) = dwm(IPR,i)/pco->dx1f(j);
+  }
+
   if (characteristic_projection) {
 #pragma omp simd
     for (int i=il; i<=iu; ++i) {
@@ -337,6 +345,10 @@ void Reconstruction::PiecewiseLinearX3(
       wl(n,i) = wc(n,i) + dxp*dwm(n,i);
       wr(n,i) = wc(n,i) - dxm*dwm(n,i);
     }
+  }
+
+  for (int i=il; i<=iu; ++i) {
+    pco->pressureGradients(2,k,j,i) = dwm(IPR,i)/pco->dx1f(k);
   }
 
   if (characteristic_projection) {
