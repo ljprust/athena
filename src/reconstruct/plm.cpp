@@ -118,8 +118,12 @@ void Reconstruction::PiecewiseLinearX1(
     }
   }
 
+  Real pgrad;
   for (int i=il; i<=iu; ++i) {
-    pco->pressureGradients(0,k,j,i) = dwm(IPR,i)/pco->dx1f(i);
+    pgrad = dwm(IPR,i)/pco->dx1f(i);
+    if ( pgrad >  wc(IPR,i)/pco->dx1f(i) ) pgrad =  wc(IPR,i)/pco->dx1f(i);
+    if ( pgrad < -wc(IPR,i)/pco->dx1f(i) ) pgrad = -wc(IPR,i)/pco->dx1f(i);
+    pco->pressureGradients(0,k,j,i) = pgrad;
   }
 
   if (characteristic_projection) {
@@ -237,8 +241,12 @@ void Reconstruction::PiecewiseLinearX2(
     }
   }
 
+  Real pgrad;
   for (int i=il; i<=iu; ++i) {
-    pco->pressureGradients(1,k,j,i) = dwm(IPR,i)/pco->dx1f(j);
+    pgrad = dwm(IPR,i)/pco->dx2f(j);
+    if ( pgrad >  wc(IPR,i)/pco->dx2f(j) ) pgrad =  wc(IPR,i)/pco->dx2f(j);
+    if ( pgrad < -wc(IPR,i)/pco->dx2f(j) ) pgrad = -wc(IPR,i)/pco->dx2f(j);
+    pco->pressureGradients(1,k,j,i) = pgrad;
   }
 
   if (characteristic_projection) {
@@ -347,8 +355,12 @@ void Reconstruction::PiecewiseLinearX3(
     }
   }
 
+  Real pgrad;
   for (int i=il; i<=iu; ++i) {
-    pco->pressureGradients(2,k,j,i) = dwm(IPR,i)/pco->dx1f(k);
+    pgrad = dwm(IPR,i)/pco->dx3f(k);
+    if ( pgrad >  wc(IPR,i)/pco->dx3f(k) ) pgrad =  wc(IPR,i)/pco->dx3f(k);
+    if ( pgrad < -wc(IPR,i)/pco->dx3f(k) ) pgrad = -wc(IPR,i)/pco->dx3f(k);
+    pco->pressureGradients(2,k,j,i) = pgrad;
   }
 
   if (characteristic_projection) {
