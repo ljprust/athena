@@ -59,4 +59,4 @@ pfloor          = 8.0e-11
 rho0        = 1.0e-20
 temp0       = 100.0
 initialTime = 53.059
-NumToRead   = 1620000
+NumToRead   = 16200

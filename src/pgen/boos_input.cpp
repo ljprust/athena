@@ -39,8 +39,8 @@ std::vector<Real> vx_in, vz_in, rho_in, temp_in;
 std::vector<Real> ejecta_in, he_in, n_in, o_in, si_in, fe_in;
 
 namespace {
-    int NumToRead;
-    Real x1max;
+    int NumToRead, nx1;
+    Real x1max, deltax;
     Real a, mu, kB, mProton;
     Real rho0, temp0, gammaGas, initialTime;
 } // namespace
@@ -90,10 +90,13 @@ void Mesh::InitUserMeshData(ParameterInput* pin) {
     NumToRead   = pin->GetInteger("problem", "NumToRead");
     x1max       = pin->GetReal("mesh", "x1max");
     initialTime = pin->GetOrAddReal("problem", "initialTime", 1.0);
+    nx1         = pin->GetInteger("mesh", "nx1");
 
     // ambient medium properties
     rho0  = pin->GetOrAddReal("problem", "rho0",  1.0);
     temp0 = pin->GetOrAddReal("problem", "temp0", 1.0);
+
+    deltax = x1max / (static_cast<double>(nx1));
 
     if (std::strcmp(COORDINATE_SYSTEM, "cylindrical_polar") != 0) {
         std::stringstream msg;
@@ -189,6 +192,8 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
     Real Egas, Erad, Ekin;
     Real Pgas, Prad, gammaGas, beta;
     int index;
+    bool isAmbient;
+
     for (int k = ks; k <= ke; k++) {
         for (int j = js; j <= je; j++) {
             for (int i = is; i <= ie; i++) {
@@ -207,7 +212,7 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
                 //printf("for vx vz %5.3e %5.3e found neighbor id %d with rho %5.3e\n",vx,vz,index,rho_in[index]);
                 //printf("for vx vz %5.3e %5.3e found neighbor id %d with rho %5.3e\n",vx,vz,index,rho_in[index]);
 
-                // COMPUTE GAMMA!!!
+                isAmbient = ejecta_in[index] > 0.5 && minDist2 < 2.0*deltax;
 
                 if ( ejecta_in[index] > 0.5 ) { // in ejecta
                     Pgas = rho_in[index]*temp_in[index]*kB/mProton/mu;
