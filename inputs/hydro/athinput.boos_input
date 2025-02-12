@@ -1,0 +1,62 @@
+<comment>
+problem   = homogously expand Boos+24 data
+reference =
+configure = --prob=boos_input --coord=cylindrical
+
+<job>
+problem_id  = wt      # problem ID: basename of output filenames
+
+<output1>
+file_type   = hdf5       # VTK data dump
+variable    = prim      #
+dt          = 10.0    # time increment between outputs
+
+#<output2>
+#file_type   = hst       # History data dump
+#dt          = 0.0628    # time increment between outputs
+
+<time>
+cfl_number  = 0.3       # The Courant, Friedrichs, & Lewy (CFL) Number
+nlim        = -1        # cycle limit
+tlim        = 1000.0      # time limit
+integrator  = vl2       # time integration algorithm
+xorder      = 2         # order of spatial reconstruction
+ncycle_out  = 1         # interval for stdout summary info
+
+<mesh>
+nx1         = 900             # Number of zones in X1-direction
+x1min       = 0.0            # minimum value of X1
+x1max       = 2.387655e12            # maximum value of X1
+ix1_bc      = reflecting           # Inner-X1 boundary condition flag
+ox1_bc      = outflow           # Outer-X1 boundary condition flag
+#x1rat       = 1.0219         # non-uniform grid ratio
+
+nx2         = 1            # Number of zones in X2-direction
+x2min       = 0.0             # minimum value of X2
+x2max       = 0.1          # maximum value of X2
+ix2_bc      = periodic       # Inner-X2 boundary condition flag
+ox2_bc      = periodic       # Outer-X2 boundary condition flag
+
+nx3         = 1800              # Number of zones in X3-direction
+x3min       = -2.387655e12           # minimum value of X3
+x3max       =  2.387655e12            # maximum value of X3
+ix3_bc      = outflow       # Inner-X3 boundary condition flag
+ox3_bc      = outflow       # Outer-X3 boundary condition flag
+
+#refinement  = None
+
+#<meshblock>
+#nx1 = 32
+#nx2 = 32
+#nx3 = 1
+
+<hydro>
+gamma           = 1.66666667 # gamma = C_p/C_v
+dfloor          = 1.0e-20
+pfloor          = 8.0e-11
+
+<problem>
+rho0        = 1.0e-20
+temp0       = 100.0
+initialTime = 53.059
+NumToRead   = 1620000

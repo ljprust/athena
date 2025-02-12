@@ -15,10 +15,10 @@
 #include "../eos.hpp"
 
 namespace{
-  const Real a = 7.56e-15;
-  const Real mu = 4.0/3.0;
+  const Real a       = 7.5646e-15;
+  const Real mu      = 2.0;
   const Real mProton = 1.6726e-24;
-  const Real kB = 1.3807e-16;
+  const Real kB      = 1.3807e-16;
 }
 
 //takes in temperature and density and outputs pressure
@@ -30,54 +30,57 @@ Real pressureEq(Real temp, Real rho) {
 Real energyEq(Real temp, Real rho) {
   return a*std::pow(temp,4.0) + 1.5*rho*kB*temp/(mu*mProton);
 }
+
 //uses bisection method to find roots of pressure equation to get temperature
 Real bisectPressure(Real rho, Real pres) {
-  Real goal=.01*pres;
-  Real fullRadTemp=std::pow((3.0*pres)/a,.25);
-  Real fullGasTemp=pres*mu*mProton/(rho*kB);
-  Real rightLim=std::min(fullRadTemp,fullGasTemp);
-  Real leftLim=0.0;
-  Real currentGuess=(rightLim-leftLim)/2.0;
-  Real currentDiff=pressureEq(currentGuess,rho)-pres;
+  Real goal = 0.01*pres;
+  Real fullRadTemp = std::pow((3.0*pres)/a,0.25);
+  Real fullGasTemp = pres*mu*mProton/(rho*kB);
+  Real rightLim = std::min(fullRadTemp,fullGasTemp);
+  Real leftLim = 0.0;
+  Real currentGuess = (rightLim-leftLim)/2.0;
+  Real currentDiff = pressureEq(currentGuess,rho)-pres;
   while(std::abs(currentDiff)>goal) {
     if (currentDiff > 0.0) {
-      rightLim=currentGuess;
+      rightLim = currentGuess;
     } else {
-      leftLim=currentGuess;
+      leftLim = currentGuess;
     }
-    currentGuess=(rightLim-leftLim)/2.0;
-    currentDiff=pressureEq(currentGuess,rho)-pres;
+    currentGuess = (rightLim-leftLim)/2.0;
+    currentDiff = pressureEq(currentGuess,rho)-pres;
   }
   return currentGuess;
 }
+
 //uses bisection method to find roots of energy equation to get temperature
 Real bisectEnergy(Real rho, Real energy) {
-  Real goal=.01*energy;
-  Real fullRadTemp=std::pow((2.0*energy)/(3.0*a),.25);
-  Real fullGasTemp=energy*2.0*mu*mProton/(3.0*rho*kB);
-  Real rightLim=std::min(fullRadTemp,fullGasTemp);
-  Real leftLim=0.0;
-  Real currentGuess=(rightLim-leftLim)/2.0;
-  Real currentDiff=energyEq(currentGuess,rho)-energy;
+  Real goal = 0.01*energy;
+  Real fullRadTemp = std::pow((2.0*energy)/(3.0*a),0.25);
+  Real fullGasTemp = energy*2.0*mu*mProton/(3.0*rho*kB);
+  Real rightLim = std::min(fullRadTemp,fullGasTemp);
+  Real leftLim = 0.0;
+  Real currentGuess = (rightLim-leftLim)/2.0;
+  Real currentDiff = energyEq(currentGuess,rho)-energy;
   while(std::abs(currentDiff)>goal) {
     if (currentDiff > 0.0) {
-      rightLim=currentGuess;
+      rightLim = currentGuess;
     } else {
-      leftLim=currentGuess;
+      leftLim = currentGuess;
     }
-    currentGuess=(rightLim-leftLim)/2.0;
-    currentDiff=energyEq(currentGuess,rho)-energy;
+    currentGuess = (rightLim-leftLim)/2.0;
+    currentDiff = energyEq(currentGuess,rho)-energy;
   }
   return currentGuess;
 }
 
 //Solves the cubic x^4+4Bx-A^2=0 to get a root of our repressed cubic, formula off of wolfram
 Real findRootCubic(Real A, Real B) {
-  Real z3=std::pow(81.0*std::pow(A,4.0)+768.00*std::pow(B,3.0),.5)+9.0*A*A;
-  Real numerator=std::pow(2.0,1/3.)*std::pow(z3, 2.0/3.0)-8.0*std::pow(3.0,1.0/3.0)*B;
-  Real denominator= std::pow(6.0, 2.0/3.0) * std::pow(z3,1.0/3.0);
+  Real z3=std::pow(81.0*std::pow(A,4.0)+768.00*std::pow(B,3.0),0.5)+9.0*A*A;
+  Real numerator=std::pow(2.0,1.0/3.0)*std::pow(z3, 2.0/3.0)-8.0*std::pow(3.0,1.0/3.0)*B;
+  Real denominator= std::pow(6.0, 2.0/3.0) * std::pow(z3, 1.0/3.0);
   return numerator/denominator;
 }
+
 //takes in pressure and density and solves the quartic analytically to get you temperature
 Real calcTemperaturePressure(Real rho, Real pres) {
   Real A,B,temp,z1,z2,y;
@@ -99,6 +102,7 @@ Real calcTemperatureEnergy(Real rho, Real energy) {
   temp=std::pow(y,0.5)*(std::pow(2.0*A/std::pow(y*y*y,0.5)-1.0,0.5)-1.0)/2.0;
   return temp;
 }
+
 //takes in temperature pressure and density and returns gamma
 Real calcGamma(Real rho, Real pres) {
   Real gasPres, beta, temp;
@@ -108,6 +112,7 @@ Real calcGamma(Real rho, Real pres) {
   beta = gasPres/pres;
   return (32.0-24.0*beta-3.0*beta*beta)/(24.0-21.0*beta);
 }
+
 //----------------------------------------------------------------------------------------
 //! \fn Real EquationOfState::PresFromRhoEg(Real rho, Real egas)
 //! \brief Return gas pressure
