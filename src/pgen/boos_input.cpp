@@ -33,7 +33,7 @@
 #include "../mesh/mesh.hpp"
 #include "../parameter_input.hpp"
 #include "../scalars/scalars.hpp"
-#include "../units/units.hpp"
+//#include "../units/units.hpp"
 
 std::vector<Real> vx_in, vz_in, rho_in, temp_in;
 std::vector<Real> ejecta_in, he_in, n_in, o_in, si_in, fe_in;
@@ -130,8 +130,6 @@ void Mesh::InitUserMeshData(ParameterInput* pin) {
     printf("Opening data files with state variables...\n");
     std::ifstream vxFileRead, vzFileRead, rhoFileRead, tempFileRead;
     std::ifstream ejectaFileRead, heFileRead, nFileRead, oFileRead, siFileRead, feFileRead;
-    rFileRead.open(vxFile);
-    thetaFileRead.open(vzFile);
     rhoFileRead.open(rhoFile);
     tempFileRead.open(tempFile);
     ejectaFileRead.open(ejectaFile);
