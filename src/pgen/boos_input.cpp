@@ -98,7 +98,7 @@ void Mesh::InitUserMeshData(ParameterInput* pin) {
 
     deltax = x1max / (static_cast<double>(nx1));
 
-    if (std::strcmp(COORDINATE_SYSTEM, "cylindrical_polar") != 0) {
+    if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") != 0) {
         std::stringstream msg;
         msg << "### FATAL ERROR in boos_input.cpp ProblemGenerator" << std::endl
             << "Cylindrical-polar coordainates are assumed: " << COORDINATE_SYSTEM << std::endl;
@@ -130,6 +130,8 @@ void Mesh::InitUserMeshData(ParameterInput* pin) {
     printf("Opening data files with state variables...\n");
     std::ifstream vxFileRead, vzFileRead, rhoFileRead, tempFileRead;
     std::ifstream ejectaFileRead, heFileRead, nFileRead, oFileRead, siFileRead, feFileRead;
+    vxFileRead.open(vxFile);
+    vzFileRead.open(vzFile);
     rhoFileRead.open(rhoFile);
     tempFileRead.open(tempFile);
     ejectaFileRead.open(ejectaFile);
@@ -190,7 +192,7 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
     Real Egas, Erad, Ekin;
     Real Pgas, Prad, gammaGas, beta;
     int index;
-    bool isAmbient;
+    bool isEjecta;
 
     for (int k = ks; k <= ke; k++) {
         for (int j = js; j <= je; j++) {
@@ -207,12 +209,11 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
                         index = l;
                     }
                 }
-                //printf("for vx vz %5.3e %5.3e found neighbor id %d with rho %5.3e\n",vx,vz,index,rho_in[index]);
-                //printf("for vx vz %5.3e %5.3e found neighbor id %d with rho %5.3e\n",vx,vz,index,rho_in[index]);
+                //if(vx<5.0e9 && vz<5.0e9 && vz>-5.0e9) printf("for vx vz %5.3e %5.3e found neighbor id %d with vx vz %5.3e %5.3e\n",vx,vz,index,vx_in[index],vz_in[index]);
 
-                isAmbient = ejecta_in[index] > 0.5 && minDist2 < 2.0*deltax;
+                isEjecta = ejecta_in[index] > 0.5 && minDist2 < 2.0*deltax;
 
-                if ( ejecta_in[index] > 0.5 ) { // in ejecta
+                if ( isEjecta ) {
                     Pgas = rho_in[index]*temp_in[index]*kB/mProton/mu;
                     Prad = a*temp_in[index]*temp_in[index]*temp_in[index]*temp_in[index]/3.0;
                     beta = Pgas/(Pgas+Prad);
