@@ -98,13 +98,6 @@ void Mesh::InitUserMeshData(ParameterInput* pin) {
 
     deltax = x1max / (static_cast<double>(nx1));
 
-    if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") != 0) {
-        std::stringstream msg;
-        msg << "### FATAL ERROR in boos_input.cpp ProblemGenerator" << std::endl
-            << "Cylindrical-polar coordainates are assumed: " << COORDINATE_SYSTEM << std::endl;
-        ATHENA_ERROR(msg);
-    }
-
     char vxFile[256];
     char vzFile[256];
     char rhoFile[256];
