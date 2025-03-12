@@ -127,6 +127,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
       u(IDN,0,0,0) = rho;
       u(IEN,0,0,0) = egas;
       peos->ConservedToPrimitive(u, zeros, f, w, zeros, pcoord, 0, 0, 0, 0, 0, 0);
+      std::cout << "Intermediate: rho pres: " << w(IDN,0,0,0) << " " << w(IEN) << std::endl;
       peos->PrimitiveToConserved(w, zeros, u, pcoord, 0, 0, 0, 0, 0, 0);
       p = w(IPR,0,0,0);
       w2[IPR]=p;

@@ -50,6 +50,7 @@ Real calcGamma(Real rho, Real pres) {
 }
 
 Real TempFromBeta3Gamma4(Real beta3, Real gamma4) {
+  Real temp;
   Real beta = std::pow(beta3, 1.0/3.0);
   Real gamma = std::pow(gamma4, 0.25);
   Real epsilon = beta/gamma;
@@ -74,6 +75,7 @@ Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
   Real beta3 = 3.0/2.0*rho*kB/mu/mProton/a;
   Real gamma4 = egas/a;
   Real temp = TempFromBeta3Gamma4(beta3, gamma4);
+  //printf("PresFromRhoEg: %5.3e\n", temp);
   return pressureEq(temp, rho);
 }
 
@@ -84,6 +86,7 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
   Real beta3 = 3.0*rho*kB/mu/mProton/a;
   Real gamma4 = 3.0*pres/a;
   Real temp = TempFromBeta3Gamma4(beta3, gamma4);
+  //printf("EgasFromRhoP: %5.3e\n", temp);
   return energyEq(temp, rho);
 }
 
