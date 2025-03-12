@@ -134,8 +134,8 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
       asq = SQR(peos->SoundSpeed(w2));
       h = p + egas;
       perr = 1.0 - u(IEN)/egas;
-      std::cout << "P(d, e)    , ASq(d, P)  , PErr\n";
-      std::cout << p << ", " << asq  << ", " << perr << '\n' << std::endl;
+      std::cout << "P(d, e)    , ASq(d, P)  ,  u[IEN],    PErr\n";
+      std::cout << p << ", " << asq  << ", " << u(IEN) << ", " << perr << '\n' << std::endl;
       std::cout << "Input density (mass/volume): ";
       std::cin >> rho;
       std::cout << "Input internal energy (energy/volume): ";

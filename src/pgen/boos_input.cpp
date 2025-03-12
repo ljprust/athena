@@ -42,7 +42,7 @@ namespace {
     int NumToRead, nx1;
     Real x1max, deltax;
     Real a, mu, kB, mProton;
-    Real rho0, temp0, gammaGas, initialTime;
+    Real rho0, temp0, initialTime;
 } // namespace
 /*
 //gets pressure given temperature and density
@@ -187,7 +187,7 @@ void Mesh::InitUserMeshData(ParameterInput* pin) {
 //========================================================================================
 
 void MeshBlock::ProblemGenerator(ParameterInput* pin) {
-
+    printf("starting pgen\n");
     Real dist2, minDist2, vx, vz;
     Real Egas, Erad, Ekin;
     Real Pgas, Prad, gammaGas, beta;
@@ -211,7 +211,7 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
                 }
                 //if(vx<5.0e9 && vz<5.0e9 && vz>-5.0e9) printf("for vx vz %5.3e %5.3e found neighbor id %d with vx vz %5.3e %5.3e\n",vx,vz,index,vx_in[index],vz_in[index]);
 
-                isEjecta = ejecta_in[index] > 0.5 && minDist2 < 2.0*deltax;
+                isEjecta = ejecta_in[index] > 0.5 && minDist2 < 4.0*deltax*deltax/initialTime/initialTime;
 
                 if ( isEjecta ) {
                     Pgas = rho_in[index]*temp_in[index]*kB/mProton/mu;
@@ -221,19 +221,24 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
 
                     Egas = 1.0/(1.0-gammaGas)*Pgas;
                     Erad = Prad*3.0;
-                    Ekin = 0.5*rho_in[index]*(vx_in[index]*vx_in[index]+vz_in[index]*vz_in[index]);
+                    Ekin = 0.5*rho_in[index]*(vx*vx+vz*vz);
 
                     phydro->u(IDN,k,j,i) = rho_in[index];
-                    phydro->u(IM1,k,j,i) = rho_in[index] * vx_in[index];
+                    phydro->u(IM1,k,j,i) = rho_in[index] * vx; // vx_in[index];
                     phydro->u(IM2,k,j,i) = 0.0;
-                    phydro->u(IM3,k,j,i) = rho_in[index] * vz_in[index];
+                    phydro->u(IM3,k,j,i) = rho_in[index] * vz; // vz_in[index];
                     phydro->u(IEN,k,j,i) = Egas + Erad + Ekin;
-                    pscalars->s(0,k,j,i) = ejecta_in[index]; // ejecta fraction
+                    pscalars->s(0,k,j,i) = 1.0*rho_in[index]; // ejecta fraction
                     pscalars->s(1,k,j,i) = he_in[index] * rho_in[index];
                     pscalars->s(2,k,j,i) = n_in[index]  * rho_in[index];
                     pscalars->s(3,k,j,i) = o_in[index]  * rho_in[index];
                     pscalars->s(4,k,j,i) = si_in[index] * rho_in[index];
                     pscalars->s(5,k,j,i) = fe_in[index] * rho_in[index];
+
+                    //if ( Pgas+Prad<1.0e5 ) {
+                    //    printf("LOW PRESSURE! rho %5.3e temp %5.3e pgas %5.3e prad %5.3e gamma %5.3e\n",rho_in[index],temp_in[index],Pgas,Prad,gammaGas);
+                    //}
+
                 } else { // ambient medium
                     Egas = 1.5*rho0*temp0*kB/mProton/mu;
                     Erad = a*temp0*temp0*temp0*temp0;
@@ -253,6 +258,7 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
             }
         }
     }
+    printf("ending pgen\n");
     return;
 }
 

@@ -14,6 +14,15 @@
 // Athena++ headers
 #include "../eos.hpp"
 
+Real pressureEq(Real temp, Real rho);
+Real energyEq(Real temp, Real rho);
+Real bisectPressure(Real rho, Real pres);
+Real bisectEnergy(Real rho, Real energy);
+Real findRootCubic(Real A, Real B);
+Real calcTemperaturePressure(Real rho, Real pres);
+Real calcTemperatureEnergy(Real rho, Real energy);
+Real calcGamma(Real rho, Real pres);
+
 namespace{
   const Real a       = 7.5646e-15;
   const Real mu      = 2.0;
@@ -28,7 +37,9 @@ Real pressureEq(Real temp, Real rho) {
 
 //takes in temperature and density and outputs internal energy
 Real energyEq(Real temp, Real rho) {
-  return a*std::pow(temp,4.0) + 1.5*rho*kB*temp/(mu*mProton);
+  Real mypressure = pressureEq(temp,rho);
+  Real gam = calcGamma(rho, mypressure);
+  return a*std::pow(temp,4.0) + 1.0/(gam-1.0)*rho*kB*temp/(mu*mProton);
 }
 
 //uses bisection method to find roots of pressure equation to get temperature
@@ -118,6 +129,7 @@ Real calcGamma(Real rho, Real pres) {
 //! \brief Return gas pressure
 Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
   Real temperature=calcTemperatureEnergy(rho, egas);
+  //printf("PresFromRhoEg: temp = %5.3e\n",temperature);
   return pressureEq(temperature,rho);
 }
 
@@ -126,6 +138,7 @@ Real EquationOfState::PresFromRhoEg(Real rho, Real egas) {
 //! \brief Return internal energy density
 Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
   Real temperature=calcTemperaturePressure(rho, pres);
+  //printf("EgasFromRhoP: temp = %5.3e\n",temperature);
   return energyEq(temperature, rho);
 }
 
@@ -134,6 +147,7 @@ Real EquationOfState::EgasFromRhoP(Real rho, Real pres) {
 //! \brief Return adiabatic sound speed squared
 Real EquationOfState::AsqFromRhoP(Real rho, Real pres) {
   Real gamma1=calcGamma(rho,pres);
+  //printf("gamma = %5.3e\n",gamma1);
   return gamma1 * pres / rho;
 }
 
