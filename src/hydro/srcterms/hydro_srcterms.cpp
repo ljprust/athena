@@ -73,6 +73,13 @@ HydroSourceTerms::HydroSourceTerms(Hydro *phyd, ParameterInput *pin) {
     hydro_sourceterms_defined = true;
   }
 
+  r_companion = pin->GetOrAddReal("problem","r_companion",0.0);
+  gm_companion = pin->GetOrAddReal("problem","gm_companion",0.0);
+  if (gm_companion > 0.0) {
+    flag_companion_gravity_ = true;
+    hydro_sourceterms_defined = true;
+  }
+
   g1_ = pin->GetOrAddReal("hydro","grav_acc1",0.0);
   if (g1_ != 0.0) hydro_sourceterms_defined = true;
 
@@ -138,6 +145,9 @@ void HydroSourceTerms::AddSourceTerms(const Real time, const Real dt,
 
   if (flag_user_gravity_)
     UserGravity(dt, flux, prim, cons);
+
+  if (flag_companion_gravity_)
+    CompanionGravity(dt, flux, prim, cons);
 
   // constant acceleration (e.g. for RT instability)
   if (g1_ != 0.0 || g2_ != 0.0 || g3_ != 0.0)
