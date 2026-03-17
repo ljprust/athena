@@ -37,28 +37,41 @@ void HydroSourceTerms::CompanionGravity(const Real dt,const AthenaArray<Real> *f
 #pragma omp simd
       for (int i=pmb->is; i<=pmb->ie; ++i) {
 
-        // define phi for center and neighbors
-        Real r, phi, z, x, y, xc, dist3, phi0;
-        Real delPhi_x, delPhi_y, delPhi_z, delPhi_cyl, delPhi_r, delPhi_phi;
+        Real r, theta, phi, z, x, y, xc, dist3, phi0;
+        Real delPhi_x, delPhi_y, delPhi_z;
+        Real delPhi_cyl, delPhi_r, delPhi_theta, delPhi_phi;
 
-        r = pmb->pcoord->x1v(i);
-        phi = pmb->pcoord->x2v(j);
-        z = pmb->pcoord->x3v(k);
-        x = r*std::cos(phi);
-        y = r*std::sin(phi);
+        if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
+          r   = pmb->pcoord->x1v(i);
+          phi = pmb->pcoord->x2v(j);
+          z   = pmb->pcoord->x3v(k);
+          x   = r*std::cos(phi);
+          y   = r*std::sin(phi); 
+        } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
+          r     = pmb->pcoord->x1v(i);
+          theta = pmb->pcoord->x2v(j);
+          phi   = pmb->pcoord->x3v(k);
+          x     = r*std::sin(theta)*std::cos(phi);
+          y     = r*std::sin(theta)*std::sin(phi);
+          z     = r*std::cos(theta);
+        }
+
         xc = r_companion;
-
         dist3 = std::pow((x-xc)*(x-xc)+y*y+z*z+r_plummer*r_plummer,1.5); 
 
         delPhi_x = gm_companion*(x-xc)/dist3;
         delPhi_y = gm_companion*y     /dist3; 
         delPhi_z = gm_companion*z     /dist3; 
 
-        phi0 = delPhi_x*std::atan(delPhi_y/delPhi_x);
-        delPhi_cyl = std::sqrt(delPhi_x*delPhi_x+delPhi_y*delPhi_y);
-
-        delPhi_r = delPhi_cyl*std::cos(phi-phi0);
-        //delPhi_phi = -delPhi_cyl*std::sin(phi-phi0);
+        if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
+          phi0 = delPhi_x*std::atan(delPhi_y/delPhi_x);
+          delPhi_cyl = std::sqrt(delPhi_x*delPhi_x+delPhi_y*delPhi_y);
+          delPhi_r = delPhi_cyl*std::cos(phi-phi0);          
+        } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
+          delPhi_r = delPhi_x*std::sin(theta)*std::cos(phi)
+                   + delPhi_y*std::sin(theta)*std::sin(phi)
+                   + delPhi_z*std::cos(theta);
+        }
 
         cons(IM1,k,j,i) -= dt*prim(IDN,k,j,i)*delPhi_r;
         cons(IEN,k,j,i) -= dt*0.5*(flux[X1DIR](IDN,k,j,i  )*delPhi_r + 
@@ -73,31 +86,49 @@ void HydroSourceTerms::CompanionGravity(const Real dt,const AthenaArray<Real> *f
       for (int j=pmb->js; j<=pmb->je; ++j) {
 #pragma omp simd
         for (int i=pmb->is; i<=pmb->ie; ++i) {
-          // define phi for center and neighbors
-          Real r, phi, z, x, y, xc, dist3, phi0;
-          Real delPhi_x, delPhi_y, delPhi_z, delPhi_cyl, delPhi_r, delPhi_phi;
 
-          r = pmb->pcoord->x1v(i);
-          phi = pmb->pcoord->x2v(j);
-          z = pmb->pcoord->x3v(k);
-          x = r*std::cos(phi);
-          y = r*std::sin(phi);
+          Real r, theta, phi, z, x, y, xc, dist3, phi0;
+          Real delPhi_x, delPhi_y, delPhi_z;
+          Real delPhi_cyl, delPhi_r, delPhi_theta, delPhi_phi;
+
+          if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
+            r   = pmb->pcoord->x1v(i);
+            phi = pmb->pcoord->x2v(j);
+            z   = pmb->pcoord->x3v(k);
+            x   = r*std::cos(phi);
+            y   = r*std::sin(phi); 
+          } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
+            r     = pmb->pcoord->x1v(i);
+            theta = pmb->pcoord->x2v(j);
+            phi   = pmb->pcoord->x3v(k);
+            x     = r*std::sin(theta)*std::cos(phi);
+            y     = r*std::sin(theta)*std::sin(phi);
+            z     = r*std::cos(theta);
+          }
+
           xc = r_companion;
-
           dist3 = std::pow((x-xc)*(x-xc)+y*y+z*z+r_plummer*r_plummer,1.5); 
 
           delPhi_x = gm_companion*(x-xc)/dist3;
           delPhi_y = gm_companion*y     /dist3; 
           delPhi_z = gm_companion*z     /dist3; 
 
-          phi0 = delPhi_x*std::atan(delPhi_y/delPhi_x);
-          delPhi_cyl = std::sqrt(delPhi_x*delPhi_x+delPhi_y*delPhi_y);
-
-          //delPhi_r = delPhi_cyl*std::cos(phi-phi0);
-          delPhi_phi = -delPhi_cyl*std::sin(phi-phi0);
-          cons(IM2,k,j,i) -= dt*prim(IDN,k,j,i)*delPhi_phi;
-          cons(IEN,k,j,i) -= dt*0.5*(flux[X2DIR](IDN,k,j  ,i)*delPhi_phi +
-                                     flux[X2DIR](IDN,k,j+1,i)*delPhi_phi);
+          if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
+            phi0 = delPhi_x*std::atan(delPhi_y/delPhi_x);
+            delPhi_cyl = std::sqrt(delPhi_x*delPhi_x+delPhi_y*delPhi_y);
+            delPhi_r = delPhi_cyl*std::cos(phi-phi0); 
+            delPhi_phi = -delPhi_cyl*std::sin(phi-phi0);
+            cons(IM2,k,j,i) -= dt*prim(IDN,k,j,i)*delPhi_phi;
+            cons(IEN,k,j,i) -= dt*0.5*(flux[X2DIR](IDN,k,j  ,i)*delPhi_phi +
+                                       flux[X2DIR](IDN,k,j+1,i)*delPhi_phi);
+          } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
+            delPhi_theta = delPhi_x*std::cos(theta)*std::cos(phi)
+                         + delPhi_y*std::cos(theta)*std::sin(phi)
+                         - delPhi_z*std::sin(theta);
+            cons(IM2,k,j,i) -= dt*prim(IDN,k,j,i)*delPhi_theta;
+            cons(IEN,k,j,i) -= dt*0.5*(flux[X2DIR](IDN,k,j  ,i)*delPhi_theta +
+                                       flux[X2DIR](IDN,k,j+1,i)*delPhi_theta);
+          }
         }
       }
     }
@@ -109,33 +140,43 @@ void HydroSourceTerms::CompanionGravity(const Real dt,const AthenaArray<Real> *f
       for (int j=pmb->js; j<=pmb->je; ++j) {
 #pragma omp simd
         for (int i=pmb->is; i<=pmb->ie; ++i) {
-          // define phi for center and neighbors
-          Real r, phi, z, x, y, xc, dist3, phi0;
-          Real delPhi_x, delPhi_y, delPhi_z, delPhi_cyl, delPhi_r, delPhi_phi;
 
-          r = pmb->pcoord->x1v(i);
-          phi = pmb->pcoord->x2v(j);
-          z = pmb->pcoord->x3v(k);
-          x = r*std::cos(phi);
-          y = r*std::sin(phi);
+          Real r, theta, phi, z, x, y, xc, dist3, phi0;
+          Real delPhi_x, delPhi_y, delPhi_z;
+          Real delPhi_cyl, delPhi_r, delPhi_theta, delPhi_phi;
+
+          if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
+            r   = pmb->pcoord->x1v(i);
+            phi = pmb->pcoord->x2v(j);
+            z   = pmb->pcoord->x3v(k);
+            x   = r*std::cos(phi);
+            y   = r*std::sin(phi); 
+          } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
+            r     = pmb->pcoord->x1v(i);
+            theta = pmb->pcoord->x2v(j);
+            phi   = pmb->pcoord->x3v(k);
+            x     = r*std::sin(theta)*std::cos(phi);
+            y     = r*std::sin(theta)*std::sin(phi);
+            z     = r*std::cos(theta);
+          }
+
           xc = r_companion;
-
           dist3 = std::pow((x-xc)*(x-xc)+y*y+z*z+r_plummer*r_plummer,1.5); 
 
           delPhi_x = gm_companion*(x-xc)/dist3;
           delPhi_y = gm_companion*y     /dist3; 
           delPhi_z = gm_companion*z     /dist3; 
 
-          //phi0 = delPhi_x*std::atan(delPhi_y/delPhi_x);
-          //delPhi_cyl = std::sqrt(delPhi_x*delPhi_x+delPhi_y*delPhi_y);
-
-          //delPhi_r = delPhi_cyl*std::cos(phi-phi0);
-          //delPhi_phi = -delPhi_cyl*std::sin(phi-phi0);
-
-          cons(IM3,k,j,i) -= dt*prim(IDN,k,j,i)*delPhi_z;
-          cons(IEN,k,j,i) -= dt*0.5*(flux[X3DIR](IDN,k  ,j,i)*delPhi_z +
-                                     flux[X3DIR](IDN,k+1,j,i)*delPhi_z);
-
+          if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
+            cons(IM3,k,j,i) -= dt*prim(IDN,k,j,i)*delPhi_z;
+            cons(IEN,k,j,i) -= dt*0.5*(flux[X3DIR](IDN,k,j  ,i)*delPhi_z +
+                                       flux[X3DIR](IDN,k+1,j,i)*delPhi_z);
+          } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
+            delPhi_phi = -delPhi_x*std::sin(phi) + delPhi_y*std::cos(phi);
+            cons(IM3,k,j,i) -= dt*prim(IDN,k,j,i)*delPhi_phi;
+            cons(IEN,k,j,i) -= dt*0.5*(flux[X3DIR](IDN,k  ,j,i)*delPhi_phi +
+                                       flux[X3DIR](IDN,k+1,j,i)*delPhi_phi);
+          }
         }
       }
     }

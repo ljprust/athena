@@ -3,9 +3,8 @@
 // Copyright(C) 2014 James M. Stone <jmstone@princeton.edu> and other code contributors
 // Licensed under the 3-clause BSD License, see LICENSE file for details
 //========================================================================================
-//! \file windtunnel.cpp
-//! \brief Initializes parallel flow in one direction in both cylindrical and
-//! spherical polar coordinates.
+//! \file binarywind.cpp
+//! \brief Initializes a wind from a central star within the inner radial boundary.
 
 // C headers
 
@@ -39,19 +38,17 @@
 #endif
 
 // inflow/outflow BCs
-void BinaryWind2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
-                         Real time, Real dt,
-                         int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void BinaryWindOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                       Real time, Real dt,
+                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 // vacuum boundary
-void BinaryWind2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
-                         Real time, Real dt,
-                         int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void BinaryWindInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                       Real time, Real dt,
+                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
 namespace {
-void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k);
-// problem parameters which are useful to make global to this file
 //Real gm_companion, r_companion; 
-Real separation, gammagas, Mdot_wind, v_wind, pressure_ratio, r_inner;
+Real Mdot_wind, v_wind, pressure_ratio;
 bool diode;
 } // namespace
 
@@ -66,16 +63,13 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   // Get parameters for gravitatonal potential of central point mass
   //gm_primary = pin->GetOrAddReal("problem","GM",0.0);
   //gm_companion = pin->GetOrAddReal("problem","gm_companion",0.0);
-  r_inner = pin->GetOrAddReal("mesh","x1min",0.0);
   //r_companion = pin->GetOrAddReal("problem","r_companion",0.0);
-  separation = pin->GetOrAddReal("problem","separation",0.0);
-  gammagas = pin->GetOrAddReal("hydro","gamma",0.0);
   Mdot_wind = pin->GetOrAddReal("problem","Mdot_wind",0.0);
   v_wind = pin->GetOrAddReal("problem","v_wind",0.0); 
   pressure_ratio = pin->GetOrAddReal("problem","pressure_ratio",0.0);
   diode = pin->GetOrAddBoolean("problem","diode",false);
-  EnrollUserBoundaryFunction(BoundaryFace::outer_x1, BinaryWind2DOuterX1);
-  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, BinaryWind2DInnerX1);
+  EnrollUserBoundaryFunction(BoundaryFace::outer_x1, BinaryWindOuterX1);
+  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, BinaryWindInnerX1);
   return;
 }
 
@@ -85,7 +79,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 //========================================================================================
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
-  Real rho, x1;
+  Real rho, r;
 
   //  Initialize density and momenta
   for (int k=ks; k<=ke; ++k) {
@@ -93,17 +87,9 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
     for (int j=js; j<=je; ++j) {
       //x2 = pcoord->x2v(j);
       for (int i=is; i<=ie; ++i) {
-        x1 = pcoord->x1v(i);
-/*
-        if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
-          y = x1*std::sin(x2);
-        } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
-          y = x1*std::sin(x2)*std::cos(x3);
-        } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
-          y = x2;
-        }
-*/
-        rho = Mdot_wind/v_wind/4.0/3.14159/x1/x1;
+        r = pcoord->x1v(i);
+
+        rho = Mdot_wind/v_wind/4.0/3.14159/r/r;
 
         phydro->u(IDN,k,j,i) = rho;
 
@@ -116,11 +102,6 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
           phydro->u(IM1,k,j,i) = rho*v_wind; // radial
           phydro->u(IM2,k,j,i) = 0.0;        // polar
           phydro->u(IM3,k,j,i) = 0.0;        // azimuth
-        } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
-          // THIS IS NOT SUPPORTED YET!!!
-          phydro->u(IM1,k,j,i) = rho*v_wind; // x
-          phydro->u(IM2,k,j,i) = 0.0; // y
-          phydro->u(IM3,k,j,i) = 0.0; // z
         } else {
           std::stringstream msg;
           msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
@@ -142,29 +123,16 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 //
 // Quantities at this boundary are held fixed at the constant upstream state
 
-void BinaryWind2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+void BinaryWindOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                   Real time, Real dt,
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
   bool applyDiode;
-  //Real phi;
-  //Real rho, pres;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
-        //rad=pco->x1v(iu+i);
-        //phi=pco->x2v(j);
-        //z=pco->x3v(k);
-/*
-        if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
-          y = pco->x2v(iu+i)*std::sin(pco->x1v(j));
-        } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
-          y = pco->x1v(iu+i)*std::sin(pco->x2v(j))*std::cos(pco->x3v(k));
-        } else if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
-          y = pco->x2v(j);
-        }
-*/
+
         prim(IDN,k,j,iu+i) = prim(IDN,k,j,iu);
         prim(IM2,k,j,iu+i) = prim(IM2,k,j,iu);
         prim(IM3,k,j,iu+i) = prim(IM3,k,j,iu);
@@ -190,18 +158,19 @@ void BinaryWind2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 //
 // Quantities in ghost cells are set to some pressure and density
 
-void BinaryWind2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+void BinaryWindInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                   Real time, Real dt,
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
-  Real rho, pres;
-
-  rho = Mdot_wind/4.0/3.14159/v_wind/r_inner/r_inner;
-  pres = pressure_ratio*0.5*rho*v_wind*v_wind;
+  Real r, rho, pres;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
+
+        r = pco->x1v(il-i);
+        rho = Mdot_wind/4.0/3.14159/v_wind/r/r;
+        pres = pressure_ratio*0.5*rho*v_wind*v_wind;
 
         prim(IDN,k,j,il-i) = rho;
         prim(IM1,k,j,il-i) = v_wind;
@@ -214,21 +183,5 @@ void BinaryWind2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
   }
 }
 
-namespace {
-//----------------------------------------------------------------------------------------
-//! transform to cylindrical coordinate
-
-void GetCylCoord(Coordinates *pco,Real &rad,Real &phi,Real &z,int i,int j,int k) {
-  if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) {
-    rad=pco->x1v(i);
-    phi=pco->x2v(j);
-    z=pco->x3v(k);
-  } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) {
-    rad=std::abs(pco->x1v(i)*std::sin(pco->x2v(j)));
-    phi=pco->x3v(k);
-    z=pco->x1v(i)*std::cos(pco->x2v(j));
-  }
-  return;
-}
-
-}
+//namespace {
+//}
