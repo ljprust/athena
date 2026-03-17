@@ -75,6 +75,7 @@ HydroSourceTerms::HydroSourceTerms(Hydro *phyd, ParameterInput *pin) {
 
   r_companion = pin->GetOrAddReal("problem","r_companion",0.0);
   gm_companion = pin->GetOrAddReal("problem","gm_companion",0.0);
+  r_plummer = pin->GetOrAddReal("problem","r_plummer",0.0);
   if (gm_companion > 0.0) {
     flag_companion_gravity_ = true;
     hydro_sourceterms_defined = true;

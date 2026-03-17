@@ -48,7 +48,7 @@ void HydroSourceTerms::CompanionGravity(const Real dt,const AthenaArray<Real> *f
         y = r*std::sin(phi);
         xc = r_companion;
 
-        dist3 = std::pow((x-xc)*(x-xc)+y*y+z*z,1.5); 
+        dist3 = std::pow((x-xc)*(x-xc)+y*y+z*z+r_plummer*r_plummer,1.5); 
 
         delPhi_x = gm_companion*(x-xc)/dist3;
         delPhi_y = gm_companion*y     /dist3; 
@@ -84,7 +84,7 @@ void HydroSourceTerms::CompanionGravity(const Real dt,const AthenaArray<Real> *f
           y = r*std::sin(phi);
           xc = r_companion;
 
-          dist3 = std::pow((x-xc)*(x-xc)+y*y+z*z,1.5); 
+          dist3 = std::pow((x-xc)*(x-xc)+y*y+z*z+r_plummer*r_plummer,1.5); 
 
           delPhi_x = gm_companion*(x-xc)/dist3;
           delPhi_y = gm_companion*y     /dist3; 
@@ -120,7 +120,7 @@ void HydroSourceTerms::CompanionGravity(const Real dt,const AthenaArray<Real> *f
           y = r*std::sin(phi);
           xc = r_companion;
 
-          dist3 = std::pow((x-xc)*(x-xc)+y*y+z*z,1.5); 
+          dist3 = std::pow((x-xc)*(x-xc)+y*y+z*z+r_plummer*r_plummer,1.5); 
 
           delPhi_x = gm_companion*(x-xc)/dist3;
           delPhi_y = gm_companion*y     /dist3; 

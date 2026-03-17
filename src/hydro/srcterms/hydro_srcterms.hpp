@@ -73,6 +73,7 @@ class HydroSourceTerms {
   Real gm_;           // GM for point mass MUST BE LOCATED AT ORIGIN
   Real semimajor, gmstar; // GM and orbital separation for user gravity
   Real gm_companion, r_companion; // GM and orbital separation for companion gravity
+  Real r_plummer; // Plummer radius for companion gravity
   Real g1_, g2_, g3_; // constant acc'n in each direction
   Real Omega_0_, qshear_; // Orbital freq and shear rate
   int  ShBoxCoord_;       // ShearCoordinate type: 1=xy (default), 2=xz
