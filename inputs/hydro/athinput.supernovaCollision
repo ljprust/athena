@@ -2,6 +2,7 @@
 problem   = sn
 reference =
 #python configure.py --prob sn_passive_tracers_fine --eos general/radIdeal --coord spherical_polar --nscalars 5 -mpi -hdf5 --hdf5_path /home/ksimotas/hdf5-1.14.1-2/hdf5/
+#make clean
 #make -j8
 
 <job>
