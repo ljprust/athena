@@ -1,7 +1,8 @@
 <comment>
 problem   = sn
 reference =
-configure = --prob=sn --coord=spherical-polar
+#python configure.py --prob sn_passive_tracers_fine --eos general/radIdeal --coord spherical_polar --nscalars 5 -mpi -hdf5 --hdf5_path /home/ksimotas/hdf5-1.14.1-2/hdf5/
+#make -j8
 
 <job>
 problem_id  = wt      # problem ID: basename of output filenames
@@ -49,9 +50,9 @@ nx3 = 10
 gamma       = 1.66666666667 # gamma = C_p/C_v
 
 <problem>
-Rej	    = 0.9e10
-Eej	    = 0.97e51
-Mej	    = 1.789623e33
+Rejecta	    = 0.9e10
+Eejecta	    = 0.97e51
+Mejecta	    = 1.789623e33
 vmax        = 2.53e9
 rho0        = 1.0e-7
 vel0        = 0.0
