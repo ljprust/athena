@@ -334,6 +334,9 @@ Real Coordinates::boundary_center_x1 = 0.0;
 Real Coordinates::boundary_center_x2 = 0.0;
 Real Coordinates::boundary_center_x3 = 0.0;
 Real Coordinates::boundary_radius    = 0.0;
+bool Coordinates::wind_flag          = false;
+Real Coordinates::wind_Mdot          = 0.0;
+Real Coordinates::wind_speed         = 0.0;
 
 //----------------------------------------------------------------------------------------
 // IsBoundaryCell: determine if a cell comprises the boundary based
@@ -351,6 +354,76 @@ bool Coordinates::IsBoundaryCell(const int k, const int j, const int i) {
                   x3v(k));
   isBound = dist < Coordinates::boundary_radius;
   return isBound;
+}
+
+
+//----------------------------------------------------------------------------------------
+// UseWindBoundary: check whether we should apply a wind boundary
+
+bool Coordinates::UseWindBoundary() {
+#pragma omp simd
+  return Coordinates::wind_flag;
+}
+
+
+//----------------------------------------------------------------------------------------
+// BoundaryWindDensity: computes the density of a wind from the boundary
+
+Real Coordinates::BoundaryWindDensity(const int k, const int j, const int i) {
+#pragma omp simd
+  Real dist, rho;
+  dist = Distance(Coordinates::boundary_center_x1,
+                  Coordinates::boundary_center_x2,
+                  Coordinates::boundary_center_x3,
+                  x1v(i),
+                  x2v(j),
+                  x3v(k));
+  rho = Coordinates::wind_Mdot/4.0/3.14159/Coordinates::wind_speed/dist/dist;
+  return rho;
+}
+
+
+//----------------------------------------------------------------------------------------
+// BoundaryWindSpeed1: computes wind speed from boundary in 1-direction
+
+Real Coordinates::BoundaryWindSpeed1(const int k, const int j, const int i) {
+#pragma omp simd
+  Real dx1, dx2, dx3, r, v_wind_cart1, v_wind_cart2, v_wind_cart3;
+  Real v_wind1, v_wind2, v_wind3;
+
+  if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
+    dx1 = x1v(i) - Coordinates::boundary_center_x1;
+    dx2 = x2v(j) - Coordinates::boundary_center_x2;
+    dx3 = x3v(k) - Coordinates::boundary_center_x3;
+  } else if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) { // r, phi, z
+    dx1 = x1v(i)*std::cos(x2v(j)) - Coordinates::boundary_center_x1*std::cos(Coordinates::boundary_center_x2);
+    dx2 = x1v(i)*std::sin(x2v(j)) - Coordinates::boundary_center_x1*std::sin(Coordinates::boundary_center_x2);
+    dx3 = x3v(k) - Coordinates::boundary_center_x3;
+  } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) { // r, theta, phi
+    dx1 = x1v(i)*std::sin(x2v(j))*std::cos(x3v(k)) - Coordinates::boundary_center_x1*std::sin(Coordinates::boundary_center_x2)*std::cos(Coordinates::boundary_center_x3);
+    dx2 = x1v(i)*std::sin(x2v(j))*std::sin(x3v(k)) - Coordinates::boundary_center_x1*std::sin(Coordinates::boundary_center_x2)*std::sin(Coordinates::boundary_center_x3);
+    dx3 = x1v(i)*std::cos(x2v(j)) - Coordinates::boundary_center_x1*std::cos(Coordinates::boundary_center_x2);
+  }
+  r = std::sqrt(dx1*dx1 + dx2*dx2 + dx3*dx3);
+  v_wind_cart1 = Coordinates::wind_speed/r*dx1;
+  v_wind_cart2 = Coordinates::wind_speed/r*dx2;
+  v_wind_cart3 = Coordinates::wind_speed/r*dx3;
+
+  if (std::strcmp(COORDINATE_SYSTEM, "cartesian") == 0) {
+    v_wind1 = v_wind_cart1;
+    v_wind2 = v_wind_cart2;
+    v_wind3 = v_wind_cart3;
+  } else if (std::strcmp(COORDINATE_SYSTEM, "cylindrical") == 0) { // r, phi, z
+    dx1 = x1a*std::cos(x2a) - x1b*std::cos(x2b);
+    dx2 = x1a*std::sin(x2a) - x1b*std::sin(x2b);
+    v_wind3 = v_wind_cart3;
+  } else if (std::strcmp(COORDINATE_SYSTEM, "spherical_polar") == 0) { // r, theta, phi
+    dx1 = x1a*std::sin(x2a)*std::cos(x3a) - x1b*std::sin(x2b)*std::cos(x3b);
+    dx2 = x1a*std::sin(x2a)*std::sin(x3a) - x1b*std::sin(x2b)*std::sin(x3b);
+    dx3 = x1a*std::cos(x2a) - x1b*std::cos(x2b);
+  }
+
+  return r;
 }
 
 
