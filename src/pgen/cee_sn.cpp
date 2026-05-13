@@ -47,7 +47,7 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
                int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
 namespace {
-Real gammagas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun;
+Real gammagas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej;
 bool diode;
 } // namespace
 
@@ -60,13 +60,15 @@ bool diode;
 
 void Mesh::InitUserMeshData(ParameterInput *pin) {
   // Get parameters for gravitatonal potential of central point mass
-  gammagas = pin->GetOrAddReal("hydro","gamma",0.0);
-  diode = pin->GetOrAddBoolean("problem","diode",false);
-  vmax = pin->GetOrAddReal("problem","v_max",0.0);
+  gammagas          = pin->GetOrAddReal("hydro","gamma",0.0);
+  diode             = pin->GetOrAddBoolean("problem","diode",false);
+  vmax              = pin->GetOrAddReal("problem","v_max",0.0);
   ramPressureFactor = pin->GetOrAddReal("problem","ramPressureFactor",0.0);
-  rhoISM = pin->GetOrAddReal("problem","rho_ISM",0.0);
-  r_inner = pin->GetOrAddReal("mesh","x1min",0.0);
-  Rsun = 7.0e10;
+  rhoISM            = pin->GetOrAddReal("problem","rho_ISM",0.0);
+  r_inner           = pin->GetOrAddReal("mesh","x1min",0.0);
+  Mej               = pin->GetOrAddReal("problem","Mej",0.0);
+  Eej               = pin->GetOrAddReal("problem","Eej",0.0);
+  Rsun              = 7.0e10;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   return;
@@ -88,7 +90,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
       theta = pcoord->x2v(j);
       for (int i=is; i<=ie; ++i) {
         r = pcoord->x1v(i);
-        z = r*cos(theta);
+        z = r*std::cos(theta);
 
         diskHeight = Rsun*(95.0*std::log10(r/Rsun)-125.0);
         rhoCEE = 0.01*std::pow(r/10.0/Rsun,-4.0)*std::pow(1.0+std::pow(125.0*Rsun/r,3.5),-1.05)
@@ -156,10 +158,8 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
                int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
   Real rhoSunny, pres;
-  Real Mej, Eej, t0, v0sq, v_inner, prefactor;
+  Real t0, v0sq, v_inner, prefactor;
 
-  Mej = 2.0e33;
-  Eej = 1.0e51;
   t0 = r_inner / vmax;
   v_inner = r_inner/(time + t0);
   v0sq = 4.0 / 3.0 * Eej / Mej;

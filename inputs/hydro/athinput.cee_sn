@@ -53,4 +53,6 @@ v_max             = 2.0e9
 ramPressureFactor = 1.0e-5
 rho_ISM           = 6.31e-25
 diode             = true
+Mej               = 2.0e33
+Eej               = 1.0e51
 
