@@ -22,23 +22,23 @@ ncycle_out  = 1         # interval for stdout summary info
 
 <mesh>
 nx1         = 640             # Number of zones in X1-direction
-x1min       = 6.0e12           # minimum value of X1
-x1max       = 6.0e13            # maximum value of X1
+x1min       = 7.2e12           # minimum value of X1
+x1max       = 7.2e13            # maximum value of X1
 ix1_bc      = user           # Inner-X1 boundary condition flag
 ox1_bc      = user           # Outer-X1 boundary condition flag
 #x1rat       = 1.0219         # non-uniform grid ratio
 
 nx2         = 40            # Number of zones in X2-direction
 x2min       = 0.0             # minimum value of X2
-x2max       = 3.141592653589793 # 6.2831853071795862   # maximum value of X2
+x2max       = 1.5707963267948966 # 3.141592653589793 # 6.2831853071795862   # maximum value of X2
 ix2_bc      = polar       # Inner-X2 boundary condition flag
-ox2_bc      = polar       # Outer-X2 boundary condition flag
+ox2_bc      = reflecting       # Outer-X2 boundary condition flag
 
 nx3         = 10              # Number of zones in X3-direction
 x3min       = 0.0           # minimum value of X3
-x3max       = 6.2831853071795862            # maximum value of X3
-ix3_bc      = periodic       # Inner-X3 boundary condition flag
-ox3_bc      = periodic       # Outer-X3 boundary condition flag
+x3max       = 1.5707963267948966 # 6.2831853071795862            # maximum value of X3
+ix3_bc      = reflecting       # Inner-X3 boundary condition flag
+ox3_bc      = reflecting       # Outer-X3 boundary condition flag
 
 <meshblock>
 nx1 = 40
@@ -49,9 +49,8 @@ nx3 = 10
 gamma           = 1.66666667 # gamma = C_p/C_v
 
 <problem>
-GM          = 2.3581e23
-rho0        = 6.76e-9
-vel0        = 5.9944e6
-p0          = 9109.0
-diode       = true
+v_max             = 2.0e9
+ramPressureFactor = 1.0e-5
+rho_ISM           = 6.31e-25
+diode             = true
 

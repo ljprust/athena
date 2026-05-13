@@ -3,9 +3,8 @@
 // Copyright(C) 2014 James M. Stone <jmstone@princeton.edu> and other code contributors
 // Licensed under the 3-clause BSD License, see LICENSE file for details
 //========================================================================================
-//! \file windtunnel.cpp
-//! \brief Initializes parallel flow in one direction in both cylindrical and
-//! spherical polar coordinates.
+//! \file cee_sn.cpp
+//! \brief Initializes CEE outflows within domain and sets SN inner radial boundary.
 
 // C headers
 
@@ -48,7 +47,7 @@ void CEEInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceF
                        int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
 namespace {
-Real gm0, rho0, vel0, p0, gammagas, semimajor, gmstar;
+Real gammagas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun;
 bool diode;
 } // namespace
 
@@ -61,15 +60,13 @@ bool diode;
 
 void Mesh::InitUserMeshData(ParameterInput *pin) {
   // Get parameters for gravitatonal potential of central point mass
-  gm0 = pin->GetOrAddReal("problem","GM",0.0);
-  rho0 = pin->GetOrAddReal("problem","rho0",1.0);
-  vel0 = pin->GetOrAddReal("problem","vel0",1.0);
-  p0 = pin->GetOrAddReal("problem","p0",1.0);
   gammagas = pin->GetOrAddReal("hydro","gamma",0.0);
   diode = pin->GetOrAddBoolean("problem","diode",false);
-  gmstar = pin->GetOrAddReal("problem","gm_star",0.0);
-  pvacuum = pin->GetOrAddReal("problem","pvacuum",0.0);
-  dvacuum = pin->GetOrAddReal("problem","dvacuum",0.0);
+  vmax = pin->GetOrAddReal("problem","v_max",0.0);
+  ramPressureFactor = pin->GetOrAddReal("problem","ramPressureFactor",0.0);
+  rhoISM = pin->GetOrAddReal("problem","rho_ISM",0.0);
+  r_inner = pin->GetOrAddReal("mesh","x1min",0.0);
+  Rsun = 7.0e10;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, CEEOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, CEEInnerX1);
   return;
@@ -77,12 +74,12 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
 //========================================================================================
 //! \fn void MeshBlock::ProblemGenerator(ParameterInput *pin)
-//! \brief Initializes wind tunnel.
+//! \brief Initializes CEE outflows within domain.
 //========================================================================================
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
-  Real r, theta, phi;
-  Real rho, pres;
+  Real r, theta, z;
+  Real diskHeight, rhoCEE;
 
   //  Initialize density and momenta
   for (int k=ks; k<=ke; ++k) {
@@ -91,14 +88,20 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
       theta = pcoord->x2v(j);
       for (int i=is; i<=ie; ++i) {
         r = pcoord->x1v(i);
+        z = r*cos(theta);
 
-        phydro->u(IDN,k,j,i) = rho;
+        diskHeight = Rsun*(95.0*std::log10(r/Rsun)-125.0);
+        rhoCEE = 0.01*std::pow(r/10.0/Rsun,-4.0)*std::pow(1.0+std::pow(125.0*Rsun/r,3.5),-1.05)
+                 * std::exp(-z*z/2.0/diskHeight/diskHeight);
+
+        phydro->u(IDN,k,j,i) = rhoCEE;
 
         phydro->u(IM1,k,j,i) = 0.0; // rho*vel0*std::cos(x2); // radial
         phydro->u(IM2,k,j,i) = 0.0; //-rho*vel0*std::sin(x2); // polar
-        phydro->u(IM3,k,j,i) =  0.0;               // azimuth
+        phydro->u(IM3,k,j,i) = 0.0;               // azimuth
 
-        phydro->u(IEN,k,j,i) = pres/(gammagas-1.0) + 0.5*rho*vel0*vel0;
+        phydro->u(IEN,k,j,i) = ramPressureFactor*rhoCEE*vmax*vmax; 
+                            // pres/(gammagas-1.0) + 0.5*rho*vel0*vel0;
       }
     }
   }
@@ -108,9 +111,9 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
 //----------------------------------------------------------------------------------------
 //! \fn void WindTunnel2DOuterX1()
-//  \brief Sets boundary condition on upstream boundary (oib) for wind tunnel
+//  \brief Sets doide outflow conditions at outer x1 boundary
 //
-// Quantities at this boundary are held fixed at the constant upstream state
+// Gas outflows with optional diode condition
 
 void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                   Real time, Real dt,
@@ -144,32 +147,37 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 
 //----------------------------------------------------------------------------------------
 //! \fn void WindTunnel2DInnerX1()
-//  \brief Sets vacuum inner boundary
+//  \brief Sets supernova ejecta inner boundary
 //
-// Quantities in ghost cells are set to some pressure and density
+// Quantities in ghost cells are set to Gaussian ejecta model from Wong+24
 
 void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                   Real time, Real dt,
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
-  Real rho, pres;
+  Real rhoSunny, pres;
+  Real Mej, Eej, t0, v0sq, v_inner, prefactor;
 
-  if ( pvacuum==0.0 || dvacuum==0.0 ) {
-    std::stringstream msg;
-    msg << "### FATAL ERROR in windtunnel.cpp ProblemGenerator" << std::endl
-        << "vacuum pressure and/or density not set" << std::endl;
-    ATHENA_ERROR(msg);
-  }
+  Mej = 2.0e33;
+  Eej = 1.0e51;
+  t0 = r_inner / vmax;
+  v_inner = r_inner/(time + t0);
+  v0sq = 4.0 / 3.0 * Eej / Mej;
+
+  prefactor = std::pow(3.0 / 4.0 / 3.14159 / Eej, 1.5) * std::pow(Mej, 2.5);
+  rhoSunny = prefactor * std::exp(-v_inner * v_inner / v0sq) * std::pow(time + t0, -3.0);
+  //pres = 0.7e14*std::pow(rho,1.6666666666667);
+  pres = ramPressureFactor*rhoSunny*vmax*vmax;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
 
-        prim(IDN,k,j,il-i) = dvacuum;
+        prim(IDN,k,j,il-i) = rhoSunny;
         prim(IM1,k,j,il-i) = 0.0;
         prim(IM2,k,j,il-i) = 0.0;
         prim(IM3,k,j,il-i) = 0.0;
-        prim(IEN,k,j,il-i) = pvacuum;
+        prim(IEN,k,j,il-i) = pres;
 
       }
     }
