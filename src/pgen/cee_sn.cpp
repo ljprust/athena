@@ -32,6 +32,7 @@
 #include "../mesh/mesh.hpp"
 #include "../orbital_advection/orbital_advection.hpp"
 #include "../parameter_input.hpp"
+#include "../scalars/scalars.hpp"
 
 #if MAGNETIC_FIELDS_ENABLED
 #error "This problem generator does not support magnetic fields"
@@ -101,6 +102,7 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         phydro->u(IM1,k,j,i) = 0.0; // rho*vel0*std::cos(x2); // radial
         phydro->u(IM2,k,j,i) = 0.0; //-rho*vel0*std::sin(x2); // polar
         phydro->u(IM3,k,j,i) = 0.0;               // azimuth
+        pscalars->s(0,k,j,i) = 0.0;
 
         phydro->u(IEN,k,j,i) = ramPressureFactor*rhoCEE*vmax*vmax; 
                             // pres/(gammagas-1.0) + 0.5*rho*vel0*vel0;
@@ -173,11 +175,12 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
 
-        prim(IDN,k,j,il-i) = rhoSunny;
-        prim(IM1,k,j,il-i) = v_inner;
-        prim(IM2,k,j,il-i) = 0.0;
-        prim(IM3,k,j,il-i) = 0.0;
-        prim(IEN,k,j,il-i) = pres;
+        prim(IDN,k,j,il-i)   = rhoSunny;
+        prim(IM1,k,j,il-i)   = v_inner;
+        prim(IM2,k,j,il-i)   = 0.0;
+        prim(IM3,k,j,il-i)   = 0.0;
+        prim(IEN,k,j,il-i)   = pres;
+        pmb->pscalars->r(0,k,j,i) = 1.0;
 
       }
     }
