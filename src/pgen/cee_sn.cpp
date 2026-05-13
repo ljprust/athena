@@ -174,7 +174,7 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
       for (int i=1;  i<=ngh; ++i) {
 
         prim(IDN,k,j,il-i) = rhoSunny;
-        prim(IM1,k,j,il-i) = 0.0;
+        prim(IM1,k,j,il-i) = v_inner;
         prim(IM2,k,j,il-i) = 0.0;
         prim(IM3,k,j,il-i) = 0.0;
         prim(IEN,k,j,il-i) = pres;
