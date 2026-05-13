@@ -38,13 +38,13 @@
 #endif
 
 // inflow/outflow BCs
-void CEEOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
-                       Real time, Real dt,
-                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void DiodeOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+                  Real time, Real dt,
+                  int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 // vacuum boundary
-void CEEInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
-                       Real time, Real dt,
-                       int il, int iu, int jl, int ju, int kl, int ku, int ngh);
+void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+               Real time, Real dt,
+               int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
 namespace {
 Real gammagas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun;
@@ -67,8 +67,8 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   rhoISM = pin->GetOrAddReal("problem","rho_ISM",0.0);
   r_inner = pin->GetOrAddReal("mesh","x1min",0.0);
   Rsun = 7.0e10;
-  EnrollUserBoundaryFunction(BoundaryFace::outer_x1, CEEOuterX1);
-  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, CEEInnerX1);
+  EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
+  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   return;
 }
 
@@ -110,12 +110,12 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 }
 
 //----------------------------------------------------------------------------------------
-//! \fn void WindTunnel2DOuterX1()
+//! \fn void DiodeOuterX1()
 //  \brief Sets doide outflow conditions at outer x1 boundary
 //
 // Gas outflows with optional diode condition
 
-void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+void DiodeOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                   Real time, Real dt,
                   int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
@@ -146,14 +146,14 @@ void WindTunnel2DOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &pr
 }
 
 //----------------------------------------------------------------------------------------
-//! \fn void WindTunnel2DInnerX1()
+//! \fn void SNInnerX1()
 //  \brief Sets supernova ejecta inner boundary
 //
 // Quantities in ghost cells are set to Gaussian ejecta model from Wong+24
 
-void WindTunnel2DInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
-                  Real time, Real dt,
-                  int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
+void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
+               Real time, Real dt,
+               int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
   Real rhoSunny, pres;
   Real Mej, Eej, t0, v0sq, v_inner, prefactor;
