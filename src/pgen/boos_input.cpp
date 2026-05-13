@@ -194,7 +194,7 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
                 vz = pcoord->x3v(k)/initialTime;
 
                 index = -1;
-                minDist2 = 4.0 * x1max * x1max;
+                minDist2 = 4.0 * x1max * x1max / initialTime / initialTime;
                 for (int l = 0; l < NumToRead; l++) {
                     dist2 = (vx-vx_in[l])*(vx-vx_in[l]) + (vz-vz_in[l])*(vz-vz_in[l]);
                     if (dist2 < minDist2) {
@@ -210,9 +210,9 @@ void MeshBlock::ProblemGenerator(ParameterInput* pin) {
                     Pgas = rho_in[index]*temp_in[index]*kB/mProton/mu;
                     Prad = a*temp_in[index]*temp_in[index]*temp_in[index]*temp_in[index]/3.0;
                     beta = Pgas/(Pgas+Prad);
-                    gammaGas = (32.0-24.0*beta-3.0*beta*beta)/(24.0-21.0*beta);
+                    //gammaGas = (32.0-24.0*beta-3.0*beta*beta)/(24.0-21.0*beta);
 
-                    Egas = 1.0/(1.0-gammaGas)*Pgas;
+                    Egas = 1.5*Pgas;
                     Erad = Prad*3.0;
                     Ekin = 0.5*rho_in[index]*(vx*vx+vz*vz);
 
