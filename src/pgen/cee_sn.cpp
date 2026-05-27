@@ -87,7 +87,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   Real r, theta, z;
   Real diskHeight, rhoCEE, rhoMin, rhoWind;
-  Real rho, temp, pres;
+  Real rho, temp, pres, mintemp;
   bool isDisk;
 
   //  Initialize density and momenta
