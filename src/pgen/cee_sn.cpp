@@ -48,7 +48,8 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
                int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
 namespace {
-Real gammagas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej;
+Real gammagas, Rgas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej;
+Real Mdotwind, vwind;
 bool diode;
 } // namespace
 
@@ -70,6 +71,9 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   Mej               = pin->GetOrAddReal("problem","Mej",0.0);
   Eej               = pin->GetOrAddReal("problem","Eej",0.0);
   Rsun              = 7.0e10;
+  Rgas              = 8.314e7;
+  Mdotwind          = 1.0e-8*2.0e33/365.25/24.0/3600.0;
+  vwind             = 30.0e5;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   return;
@@ -82,7 +86,9 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   Real r, theta, z;
-  Real diskHeight, rhoCEE;
+  Real diskHeight, rhoCEE, rhoMin, rhoWind;
+  Real rho, temp, pres;
+  bool isDisk;
 
   //  Initialize density and momenta
   for (int k=ks; k<=ke; ++k) {
@@ -93,18 +99,37 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         r = pcoord->x1v(i);
         z = r*std::cos(theta);
 
-        diskHeight = Rsun*(95.0*std::log10(r/Rsun)-125.0);
-        rhoCEE = 0.01*std::pow(r/10.0/Rsun,-4.0)*std::pow(1.0+std::pow(125.0*Rsun/r,3.5),-1.05)
+        diskHeight = 0.4*r+10.0*Rsun;
+		// Rsun*(95.0*std::log10(r/Rsun)-125.0);
+	rhoCEE = 0.01*std::pow(r/10.0/Rsun,-4.0)*std::pow(1.0+std::pow(125.0*Rsun/r,3.5),-1.05)
                  * std::exp(-z*z/2.0/diskHeight/diskHeight);
+	
+	//rhoMin = 1.0e-11;
+	rhoWind = Mdotwind/4.0/3.14159/r/r/vwind;
 
-        phydro->u(IDN,k,j,i) = rhoCEE;
+	isDisk = true; // rhoCEE > rhoWind;
+
+	mintemp = 1.0e4;
+	temp = std::max( mintemp, 4.5e4/(r/100.0/Rsun) );
+
+	if (isDisk) {
+	  rho = rhoCEE;
+	} else {
+	  rho = rhoWind;
+	}
+
+	pres = rho*Rgas*temp;
+
+        phydro->u(IDN,k,j,i) = rho;
 
         phydro->u(IM1,k,j,i) = 0.0; // rho*vel0*std::cos(x2); // radial
         phydro->u(IM2,k,j,i) = 0.0; //-rho*vel0*std::sin(x2); // polar
         phydro->u(IM3,k,j,i) = 0.0;               // azimuth
+
         pscalars->s(0,k,j,i) = 0.0;
 
-        phydro->u(IEN,k,j,i) = ramPressureFactor*rhoCEE*vmax*vmax; 
+        phydro->u(IEN,k,j,i) = pres;
+		            // ramPressureFactor*rhoCEE*vmax*vmax; 
                             // pres/(gammagas-1.0) + 0.5*rho*vel0*vel0;
       }
     }
@@ -168,18 +193,18 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
 
   prefactor = std::pow(3.0 / 4.0 / 3.14159 / Eej, 1.5) * std::pow(Mej, 2.5);
   rhoSunny = prefactor * std::exp(-v_inner * v_inner / v0sq) * std::pow(time + t0, -3.0);
-  //pres = 0.7e14*std::pow(rho,1.6666666666667);
-  pres = ramPressureFactor*rhoSunny*vmax*vmax;
+  pres = 0.7e14*std::pow(rhoSunny,1.6666666666667);
+  //pres = ramPressureFactor*rhoSunny*vmax*vmax;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
 
-        prim(IDN,k,j,il-i)   = rhoSunny;
-        prim(IM1,k,j,il-i)   = v_inner;
-        prim(IM2,k,j,il-i)   = 0.0;
-        prim(IM3,k,j,il-i)   = 0.0;
-        prim(IEN,k,j,il-i)   = pres;
+        prim(IDN,k,j,il-i)        = rhoSunny;
+        prim(IM1,k,j,il-i)        = v_inner;
+        prim(IM2,k,j,il-i)        = 0.0;
+        prim(IM3,k,j,il-i)        = 0.0;
+        prim(IEN,k,j,il-i)        = pres;
         pmb->pscalars->r(0,k,j,i) = 1.0;
 
       }
