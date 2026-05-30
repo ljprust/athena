@@ -79,15 +79,15 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     if (isBoundLeft) {
       wli[IDN]=wr(IDN,i);
       wli[IVX]=-wr(ivx,i);
-      wli[IVY]=wr(ivy,i);
-      wli[IVZ]=wr(ivz,i);
+      wli[IVY]=wr(ivy,i)*pco->fShearFactor;
+      wli[IVZ]=wr(ivz,i)*pco->fShearFactor;
       wli[IPR]=wr(IPR,i);
     }
     if (isBoundRight) {
       wri[IDN]=wl(IDN,i);
       wri[IVX]=-wl(ivx,i);
-      wri[IVY]=wl(ivy,i);
-      wri[IVZ]=wl(ivz,i);
+      wri[IVY]=wl(ivy,i)*pco->fShearFactor;
+      wri[IVZ]=wl(ivz,i)*pco->fShearFactor;
       wri[IPR]=wl(IPR,i);
     }
 
