@@ -53,6 +53,8 @@ class Coordinates {
   static Real boundary_center_x2;
   static Real boundary_center_x3;
   static Real boundary_radius;
+  // controls behavior of shear layer at boundary surface
+  static Real fShearFactor;
 
   // functions...
   // ...to identify boundary cells and faces

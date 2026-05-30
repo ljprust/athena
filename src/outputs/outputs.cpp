@@ -269,12 +269,17 @@ Outputs::Outputs(Mesh *pm, ParameterInput *pin) {
           ATHENA_ERROR(msg);
 #endif
         } else {
+          printf("Assuming rst output format, if not then something is very wrong\n");
+          pnew_type = new RestartOutput(op);
+          num_rst_outputs++;
+        }
+/*
           msg << "### FATAL ERROR in Outputs constructor" << std::endl
               << "Unrecognized file format = '" << op.file_type
               << "' in output block '" << op.block_name << "'" << std::endl;
           ATHENA_ERROR(msg);
         }
-
+*/
         // Append type as tail node in singly linked list
         if (pfirst_type_ == nullptr) {
           pfirst_type_ = pnew_type;

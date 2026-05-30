@@ -80,10 +80,10 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   diode      = pin->GetOrAddBoolean("problem","diode",false);
 
   // properties of ejecta
-  Rej        = pin->GetOrAddReal("problem","Rejecta",1.0);
-  Eej        = pin->GetOrAddReal("problem","Eejecta",1.0);
-  Mej        = pin->GetOrAddReal("problem","Mejecta",1.0);
-  vmax       = pin->GetOrAddReal("problem","vmax",1.0);
+  Rej        = pin->GetOrAddReal("problem","Rejecta",0.0);
+  Eej        = pin->GetOrAddReal("problem","Eejecta",0.0);
+  Mej        = pin->GetOrAddReal("problem","Mejecta",0.0);
+  vmax       = pin->GetOrAddReal("problem","vmax"   ,0.0);
 
   // properties of initial timestep
   smallDt = pin->GetReal("problem", "smallDt");

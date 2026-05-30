@@ -68,4 +68,4 @@ boundary_center_x1 = 1.88616e10
 boundary_center_x2 = 0.0
 boundary_center_x3 = 0.0
 boundary_radius    = 5.568e9
-
+fShearFactor       = 1.0

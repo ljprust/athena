@@ -32,7 +32,8 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
   Coordinates::boundary_center_x1 = pin->GetOrAddReal("problem","boundary_center_x1",0.0);
   Coordinates::boundary_center_x2 = pin->GetOrAddReal("problem","boundary_center_x2",0.0);
   Coordinates::boundary_center_x3 = pin->GetOrAddReal("problem","boundary_center_x3",0.0);
-  Coordinates::boundary_radius    = pin->GetOrAddReal("problem","boundary_radius"  ,0.0);
+  Coordinates::boundary_radius    = pin->GetOrAddReal("problem","boundary_radius"   ,0.0);
+  Coordinates::fShearFactor       = pin->GetOrAddReal("problem","fShearFactor"      ,0.0);
 
   // Set indices
   if (coarse_flag) {
@@ -334,6 +335,7 @@ Real Coordinates::boundary_center_x1 = 0.0;
 Real Coordinates::boundary_center_x2 = 0.0;
 Real Coordinates::boundary_center_x3 = 0.0;
 Real Coordinates::boundary_radius    = 0.0;
+Real Coordinates::fShearFactor       = 0.0;
 
 //----------------------------------------------------------------------------------------
 // IsBoundaryCell: determine if a cell comprises the boundary based
