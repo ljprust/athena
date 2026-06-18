@@ -101,8 +101,9 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
         diskHeight = 0.4*r+10.0*Rsun;
 		// Rsun*(95.0*std::log10(r/Rsun)-125.0);
-	rhoCEE = 0.01*std::pow(r/10.0/Rsun,-4.0)*std::pow(1.0+std::pow(125.0*Rsun/r,3.5),-1.05)
-                 * std::exp(-z*z/2.0/diskHeight/diskHeight);
+	rhoCEE = std::exp(-z*z/2.0/diskHeight/diskHeight)
+	//* 0.01*std::pow(r/10.0/Rsun,-4.0)*std::pow(1.0+std::pow(125.0*Rsun/r,3.5),-1.05); // 500 d
+	* (1.0e-4*std::pow(r/100.0/Rsun,-4.8)*std::pow(1.0+std::pow(690.0*Rsun/r,1.9),-3.4)+6.358e-13*std::pow(r/6000.0/Rsun,-3.2)/(1.0+std::pow(6000.0*Rsun/r,6.0))); // 10000 d
 	
 	//rhoMin = 1.0e-11;
 	rhoWind = Mdotwind/4.0/3.14159/r/r/vwind;
