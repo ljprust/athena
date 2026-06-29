@@ -49,9 +49,19 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
 
 Real MyTimeStep(MeshBlock* pmb);
 
+void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt, 
+    const AthenaArray<Real>& prim, const AthenaArray<Real>& prim_scalar,
+    const AthenaArray<Real>& bcc, AthenaArray<Real>& cons,
+    AthenaArray<Real>& cons_scalar);
+
 namespace {
-Real gammagas, Rgas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej;
+Real gammagas, Rgas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej, t0;
 Real Mdotwind, vwind;
+Real day;
+Real epsilon_Ni, epsilon_Co;
+Real tau_Ni, tau_Co;
+Real A_nuc, mproton;
+Real index_Ni, index_Co;
 bool diode;
 } // namespace
 
@@ -76,9 +86,23 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   Rgas              = 8.314e7;
   Mdotwind          = 1.0e-8*2.0e33/365.25/24.0/3600.0;
   vwind             = 30.0e5;
+  t0                = r_inner/vmax;
+  day               = 24.0*3600.0;
+  mproton           = 1.6726e-24;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   EnrollUserTimeStepFunction(MyTimeStep);
+  //EnrollUserExplicitSourceFunction(radioactiveHeating);
+
+  epsilon_Ni = 1.72e-6; // energy released in decays
+  epsilon_Co = 3.49e-6;
+  tau_Ni     = 8.77*day; // e-folding times of decays
+  tau_Co     = 111.0*day;
+  A_nuc      = 56.0; // mass number
+
+  index_Ni = 0;
+  index_Co = 0;
+
   return;
 }
 
@@ -189,9 +213,8 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
                int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
 
   Real rhoSunny, pres;
-  Real t0, v0sq, v_inner, prefactor;
+  Real v0sq, v_inner, prefactor;
 
-  t0 = r_inner / vmax;
   v_inner = r_inner/(time + t0);
   v0sq = 4.0 / 3.0 * Eej / Mej;
 
@@ -223,6 +246,32 @@ Real MyTimeStep(MeshBlock* pmb) {
     if (time < 0.1) min_dt = std::min(dt, 1.0e-2);
     return min_dt;
 }
+
+void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
+    const AthenaArray<Real>& prim, const AthenaArray<Real>& prim_scalar,
+    const AthenaArray<Real>& bcc, AthenaArray<Real>& cons,
+    AthenaArray<Real>& cons_scalar) {
+
+    Real deltaRho_Ni, deltaRho_Co;
+
+    Real coefficient_Ni = epsilon_Ni / (tau_Ni * A_nuc * mproton);
+    Real coefficient_Co = epsilon_Co / (tau_Co * A_nuc * mproton);
+
+    for (int k = pmb->ks; k <= pmb->ke; ++k) {
+        for (int j = pmb->js; j <= pmb->je; ++j) {
+            for (int i = pmb->is; i <= pmb->ie; ++i) {
+                cons(IEN,k,j,i) += dt * cons_scalar(index_Ni,k,j,i) * coefficient_Ni 
+                                 * std::exp(-1.0 * (time + t0) / tau_Ni)
+                                 + dt * cons_scalar(index_Co,k,j,i) * coefficient_Co
+                                 * std::exp(-1.0 * (time + t0) / tau_Co);
+                deltaRho_Ni = -dt/tau_Ni*cons_scalar(index_Ni,k,j,i);
+                deltaRho_Co = -dt/tau_Co*cons_scalar(index_Co,k,j,i);
+                cons_scalar(index_Ni,k,j,i) += deltaRho_Ni;
+                cons_scalar(index_Co,k,j,i) += deltaRho_Co - deltaRho_Ni;
+            }
+        }
+    }
+}  
 
 namespace {
 }
