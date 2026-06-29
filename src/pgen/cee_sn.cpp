@@ -47,6 +47,8 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
                Real time, Real dt,
                int il, int iu, int jl, int ju, int kl, int ku, int ngh);
 
+Real MyTimeStep(MeshBlock* pmb);
+
 namespace {
 Real gammagas, Rgas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej;
 Real Mdotwind, vwind;
@@ -76,6 +78,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   vwind             = 30.0e5;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
+  EnrollUserTimeStepFunction(MyTimeStep);
   return;
 }
 
@@ -88,7 +91,6 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
   Real r, theta, z;
   Real diskHeight, rhoCEE, rhoMin, rhoWind;
   Real rho, temp, pres, mintemp;
-  bool isDisk;
 
   //  Initialize density and momenta
   for (int k=ks; k<=ke; ++k) {
@@ -108,18 +110,19 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 	//rhoMin = 1.0e-11;
 	rhoWind = Mdotwind/4.0/3.14159/r/r/vwind;
 
-	isDisk = true; // rhoCEE > rhoWind;
-
 	mintemp = 1.0e4;
-	temp = std::max( mintemp, 4.5e4/(r/100.0/Rsun) );
 
-	if (isDisk) {
+	if (rhoCEE > rhoWind && rhoCEE > rhoISM) { // disk
 	  rho = rhoCEE;
-	} else {
+    temp = std::max( mintemp, 4.5e4/(r/100.0/Rsun) );
+    pres = rho*Rgas*temp;
+	} else if (rhoWind > rhoISM) { // wind
 	  rho = rhoWind;
-	}
-
-	pres = rho*Rgas*temp;
+    pres = rho*Rgas*mintemp;
+	} else { // ISM
+    rho = rhoISM;
+    pres = ramPressureFactor*rhoISM*vmax*vmax;
+  }
 
         phydro->u(IDN,k,j,i) = rho;
 
@@ -211,6 +214,14 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
       }
     }
   }
+}
+
+Real MyTimeStep(MeshBlock* pmb) {
+    Real time   = pmb->pmy_mesh->time;
+    Real dt     = pmb->pmy_mesh->dt;
+    Real min_dt = 1.0e3;
+    if (time < 0.1) min_dt = std::min(dt, 1.0e-2);
+    return min_dt;
 }
 
 namespace {
