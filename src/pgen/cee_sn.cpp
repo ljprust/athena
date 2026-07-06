@@ -57,9 +57,8 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
     const AthenaArray<Real>& bcc, AthenaArray<Real>& cons,
     AthenaArray<Real>& cons_scalar);
 
-std::vector<Real> vr_in, rho_in, temp_in, ar36_in, fe56_in, co56_in, ni56_in;
+std::vector<Real> vr_in, rho_in, pres_in, ar36_in, fe56_in, co56_in, ni56_in;
 int NumToRead; // 107
-Real t_data; // 10 s
 
 namespace {
 Real gammagas, Rgas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej, t0;
@@ -108,38 +107,38 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   tau_Co     = 111.0*day;
   A_nuc      = 56.0; // mass number
 
-  char vrFile[256], rhoFile[256], tempFile[256], 
+  char vrFile[256], rhoFile[256], presFile[256], 
        ar36File[256], fe56File[256], co56File[256], ni56File[256];
-  sprintf(vrFile,   "vr.txt");
-  sprintf(rhoFile,  "rho.txt");
-  sprintf(tempFile, "temp.txt");
-  sprintf(ar36File, "ar36.txt");
-  sprintf(fe56File, "fe56.txt");
-  sprintf(co56File, "co56.txt");
-  sprintf(ni56File, "ni56.txt");
+  sprintf(vrFile,   "athenainput_vr.txt");
+  sprintf(rhoFile,  "athenainput_rho.txt");
+  sprintf(presFile, "athenainput_pres.txt");
+  sprintf(ar36File, "athenainput_ar36.txt");
+  sprintf(fe56File, "athenainput_fe56.txt");
+  sprintf(co56File, "athenainput_co56.txt");
+  sprintf(ni56File, "athenainput_ni56.txt");
   printf("Opening data files with state variables...\n");
-  std::ifstream vrFileRead, rhoFileRead, tempFileRead, 
+  std::ifstream vrFileRead, rhoFileRead, presFileRead, 
                 ar36FileRead, fe56FileRead, co56FileRead, ni56FileRead;
   vrFileRead.open(vrFile);
   rhoFileRead.open(rhoFile);
-  tempFileRead.open(tempFile);
+  presFileRead.open(presFile);
   ar36FileRead.open(ar36File);
   fe56FileRead.open(fe56File);
   co56FileRead.open(co56File);
   ni56FileRead.open(ni56File);
 
-  Real vr, rho, temp, ar36, fe56, co56, ni56;
+  Real vr, rho, pres, ar36, fe56, co56, ni56;
   for (int l = 0; l < NumToRead; l++) {
     vrFileRead   >> vr;
     rhoFileRead  >> rho;
-    tempFileRead >> temp;
+    presFileRead >> pres;
     ar36FileRead >> ar36;
     fe56FileRead >> fe56;
     co56FileRead >> co56;
     ni56FileRead >> ni56;
     vr_in.push_back(vr);
     rho_in.push_back(rho);
-    temp_in.push_back(temp);
+    pres_in.push_back(pres);
     ar36_in.push_back(ar36);
     fe56_in.push_back(fe56);
     co56_in.push_back(co56);
@@ -148,7 +147,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   printf("Done reading, closing data files\n");
   vrFileRead.close();
   rhoFileRead.close();
-  tempFileRead.close();
+  presFileRead.close();
   ar36FileRead.close();
   fe56FileRead.close();
   co56FileRead.close();
@@ -300,7 +299,7 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
         prim(IM1,k,j,il-i)        = v_inner;
         prim(IM2,k,j,il-i)        = 0.0;
         prim(IM3,k,j,il-i)        = 0.0;
-        prim(IEN,k,j,il-i)        = rho_in[index]*Rgas*temp_in[index]/mu_SN_ejecta;
+        prim(IEN,k,j,il-i)        = pres_in[index];
         pmb->pscalars->r(0,k,j,i) = 1.0;
         pmb->pscalars->r(1,k,j,i) = ar36_in[index];
         pmb->pscalars->r(2,k,j,i) = fe56_in[index];
