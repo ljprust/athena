@@ -20,6 +20,9 @@
 #include <stdexcept>  // runtime_error
 #include <string>     // c_str()
 
+//#include <unistd.h>   
+#include <stdio.h>
+
 // Athena++ headers
 #include "../athena.hpp"
 #include "../athena_arrays.hpp"
@@ -54,6 +57,10 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
     const AthenaArray<Real>& bcc, AthenaArray<Real>& cons,
     AthenaArray<Real>& cons_scalar);
 
+std::vector<Real> vr_in, rho_in, temp_in, ar36_in, fe56_in, co56_in, ni56_in;
+int NumToRead; // 107
+Real t_data; // 10 s
+
 namespace {
 Real gammagas, Rgas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej, t0;
 Real Mdotwind, vwind;
@@ -61,7 +68,7 @@ Real day;
 Real epsilon_Ni, epsilon_Co;
 Real tau_Ni, tau_Co;
 Real A_nuc, mproton;
-Real index_Ni, index_Co;
+Real mu_SN_ejecta;
 bool diode;
 } // namespace
 
@@ -89,10 +96,11 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   t0                = r_inner/vmax;
   day               = 24.0*3600.0;
   mproton           = 1.6726e-24;
+  mu_SN_ejecta      = 2.0;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   EnrollUserTimeStepFunction(MyTimeStep);
-  //EnrollUserExplicitSourceFunction(radioactiveHeating);
+  EnrollUserExplicitSourceFunction(radioactiveHeating);
 
   epsilon_Ni = 1.72e-6; // energy released in decays
   epsilon_Co = 3.49e-6;
@@ -100,8 +108,51 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   tau_Co     = 111.0*day;
   A_nuc      = 56.0; // mass number
 
-  index_Ni = 0;
-  index_Co = 0;
+  char vrFile[256], rhoFile[256], tempFile[256], 
+       ar36File[256], fe56File[256], co56File[256], ni56File[256];
+  sprintf(vrFile,   "vr.txt");
+  sprintf(rhoFile,  "rho.txt");
+  sprintf(tempFile, "temp.txt");
+  sprintf(ar36File, "ar36.txt");
+  sprintf(fe56File, "fe56.txt");
+  sprintf(co56File, "co56.txt");
+  sprintf(ni56File, "ni56.txt");
+  printf("Opening data files with state variables...\n");
+  std::ifstream vrFileRead, rhoFileRead, tempFileRead, 
+                ar36FileRead, fe56FileRead, co56FileRead, ni56FileRead;
+  vrFileRead.open(vrFile);
+  rhoFileRead.open(rhoFile);
+  tempFileRead.open(tempFile);
+  ar36FileRead.open(ar36File);
+  fe56FileRead.open(fe56File);
+  co56FileRead.open(co56File);
+  ni56FileRead.open(ni56File);
+
+  Real vr, rho, temp, ar36, fe56, co56, ni56;
+  for (int l = 0; l < NumToRead; l++) {
+    vrFileRead   >> vr;
+    rhoFileRead  >> rho;
+    tempFileRead >> temp;
+    ar36FileRead >> ar36;
+    fe56FileRead >> fe56;
+    co56FileRead >> co56;
+    ni56FileRead >> ni56;
+    vr_in.push_back(vr);
+    rho_in.push_back(rho);
+    temp_in.push_back(temp);
+    ar36_in.push_back(ar36);
+    fe56_in.push_back(fe56);
+    co56_in.push_back(co56);
+    ni56_in.push_back(ni56);
+  }
+  printf("Done reading, closing data files\n");
+  vrFileRead.close();
+  rhoFileRead.close();
+  tempFileRead.close();
+  ar36FileRead.close();
+  fe56FileRead.close();
+  co56FileRead.close();
+  ni56FileRead.close();
 
   return;
 }
@@ -154,11 +205,13 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         phydro->u(IM2,k,j,i) = 0.0; //-rho*vel0*std::sin(x2); // polar
         phydro->u(IM3,k,j,i) = 0.0;               // azimuth
 
-        pscalars->s(0,k,j,i) = 0.0;
-
         phydro->u(IEN,k,j,i) = pres;
 		            // ramPressureFactor*rhoCEE*vmax*vmax; 
                             // pres/(gammagas-1.0) + 0.5*rho*vel0*vel0;
+
+        for (int l=0; l<NSCALARS; ++l) {
+          pscalars->s(l,k,j,i) = 0.0;
+        }
       }
     }
   }
@@ -187,6 +240,9 @@ void DiodeOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, Fac
         prim(IM2,k,j,iu+i) = prim(IM2,k,j,iu);
         prim(IM3,k,j,iu+i) = prim(IM3,k,j,iu);
         prim(IEN,k,j,iu+i) = prim(IEN,k,j,iu);
+        for (int l=0; l<NSCALARS; ++l) {
+          pmb->pscalars->r(l,k,j,iu+i) = pmb->pscalars->r(l,k,j,i,iu);
+        }
 
         // ensure that no gas enters through the outflow boundary
         // by giving the radial velocity some TLC
@@ -223,17 +279,33 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
   pres = 0.7e14*std::pow(rhoSunny,1.6666666666667);
   //pres = ramPressureFactor*rhoSunny*vmax*vmax;
 
+  Real dist;
+  int index;
+
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
 
-        prim(IDN,k,j,il-i)        = rhoSunny;
+        dist = 1.0e10;
+        index = -1;
+
+        for (int l=0; l<NumToRead; ++l) {
+          if (dist > std::abs(v_inner-vr_in[l])) {
+            dist = v_inner-vr_in[l];
+            index = l;
+          }
+        }
+
+        prim(IDN,k,j,il-i)        = rho_in[index];
         prim(IM1,k,j,il-i)        = v_inner;
         prim(IM2,k,j,il-i)        = 0.0;
         prim(IM3,k,j,il-i)        = 0.0;
-        prim(IEN,k,j,il-i)        = pres;
+        prim(IEN,k,j,il-i)        = rho_in[index]*Rgas*temp_in[index]/mu_SN_ejecta;
         pmb->pscalars->r(0,k,j,i) = 1.0;
-
+        pmb->pscalars->r(1,k,j,i) = ar36_in[index];
+        pmb->pscalars->r(2,k,j,i) = fe56_in[index];
+        pmb->pscalars->r(3,k,j,i) = co56_in[index];
+        pmb->pscalars->r(4,k,j,i) = ni56_in[index];
       }
     }
   }
@@ -260,14 +332,15 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
     for (int k = pmb->ks; k <= pmb->ke; ++k) {
         for (int j = pmb->js; j <= pmb->je; ++j) {
             for (int i = pmb->is; i <= pmb->ie; ++i) {
-                cons(IEN,k,j,i) += dt * cons_scalar(index_Ni,k,j,i) * coefficient_Ni 
+                cons(IEN,k,j,i) += dt * cons_scalar(4,k,j,i) * coefficient_Ni 
                                  * std::exp(-1.0 * (time + t0) / tau_Ni)
-                                 + dt * cons_scalar(index_Co,k,j,i) * coefficient_Co
+                                 + dt * cons_scalar(3,k,j,i) * coefficient_Co
                                  * std::exp(-1.0 * (time + t0) / tau_Co);
-                deltaRho_Ni = -dt/tau_Ni*cons_scalar(index_Ni,k,j,i);
-                deltaRho_Co = -dt/tau_Co*cons_scalar(index_Co,k,j,i);
-                cons_scalar(index_Ni,k,j,i) += deltaRho_Ni;
-                cons_scalar(index_Co,k,j,i) += deltaRho_Co - deltaRho_Ni;
+                deltaRho_Ni = -dt/tau_Ni*cons_scalar(4,k,j,i); // Ni to Co
+                deltaRho_Co = -dt/tau_Co*cons_scalar(3,k,j,i); // Co to Fe
+                cons_scalar(4,k,j,i) += deltaRho_Ni;
+                cons_scalar(3,k,j,i) += deltaRho_Co - deltaRho_Ni;
+                cons_scalar(2,k,j,i) += -deltaRho_Co;
             }
         }
     }
