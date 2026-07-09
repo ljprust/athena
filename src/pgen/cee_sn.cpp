@@ -57,10 +57,10 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
     const AthenaArray<Real>& bcc, AthenaArray<Real>& cons,
     AthenaArray<Real>& cons_scalar);
 
-std::vector<Real> vr_in, rho_in, temp_in, ar36_in, fe56_in, co56_in, ni56_in;
-int NumToRead; // 107
-
 namespace {
+std::vector<Real> vr_in, rho_in, temp_in, ar36_in, fe56_in, co56_in, ni56_in;
+static Real vr_in_current, rho_in_current, temp_in_current, 
+	    ar36_in_current, fe56_in_current, co56_in_current, ni56_in_current;
 Real gammagas, Rgas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej, t0;
 Real Mdotwind, vwind;
 Real day;
@@ -69,6 +69,7 @@ Real tau_Ni, tau_Co;
 Real A_nuc, mproton;
 Real mu_SN_ejecta, ar, kB;
 bool diode;
+int NumToRead;
 } // namespace
 
 //========================================================================================
@@ -98,6 +99,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   mu_SN_ejecta      = 2.0;
   ar                = 7.5646e-15; // radiation density constant
   kB                = 1.3807e-16; // Boltzmann constant
+  NumToRead         = 107;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   EnrollUserTimeStepFunction(MyTimeStep);
@@ -108,7 +110,8 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   tau_Ni     = 8.77*day; // e-folding times of decays
   tau_Co     = 111.0*day;
   A_nuc      = 56.0; // mass number
-
+  
+  if (Globals::my_rank==0) {
   char vrFile[256], rhoFile[256], tempFile[256], 
        ar36File[256], fe56File[256], co56File[256], ni56File[256];
   sprintf(vrFile,   "athenainput_vr.txt");
@@ -155,6 +158,15 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   co56FileRead.close();
   ni56FileRead.close();
 
+  rho_in_current  = rho_in[NumToRead-1];
+  vr_in_current   = vr_in[NumToRead-1];
+  temp_in_current = temp_in[NumToRead-1];
+  ar36_in_current = ar36_in[NumToRead-1];
+  fe56_in_current = fe56_in[NumToRead-1];
+  co56_in_current = co56_in[NumToRead-1];
+  ni56_in_current = ni56_in[NumToRead-1];
+  }
+  
   return;
 }
 
@@ -241,8 +253,9 @@ void DiodeOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, Fac
         prim(IM2,k,j,iu+i) = prim(IM2,k,j,iu);
         prim(IM3,k,j,iu+i) = prim(IM3,k,j,iu);
         prim(IEN,k,j,iu+i) = prim(IEN,k,j,iu);
+	
         for (int l=0; l<NSCALARS; ++l) {
-          pmb->pscalars->r(l,k,j,iu+i) = pmb->pscalars->r(l,k,j,i,iu);
+          pmb->pscalars->r(l,k,j,iu+i) = pmb->pscalars->r(l,k,j,iu);
         }
 
         // ensure that no gas enters through the outflow boundary
@@ -273,43 +286,32 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
   Real rhoSunny, v0sq, prefactor;
 
   v_inner = r_inner/(time + t0);
-  //v0sq = 4.0 / 3.0 * Eej / Mej;
 
-  //prefactor = std::pow(3.0 / 4.0 / 3.14159 / Eej, 1.5) * std::pow(Mej, 2.5);
-  //rhoSunny = prefactor * std::exp(-v_inner * v_inner / v0sq) * std::pow(time + t0, -3.0);
-  //pres = 0.7e14*std::pow(rhoSunny,1.6666666666667);
+  v0sq = 4.0 / 3.0 * Eej / Mej;
+  prefactor = std::pow(3.0 / 4.0 / 3.14159 / Eej, 1.5) * std::pow(Mej, 2.5);
+  rhoSunny = prefactor * std::exp(-v_inner * v_inner / v0sq) * std::pow(time + t0, -3.0);
+  pres = 0.7e14*std::pow(rhoSunny,1.6666666666667);
   //pres = ramPressureFactor*rhoSunny*vmax*vmax;
-
-  Real dist;
-  int index;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
 
-        dist = 1.0e10;
-        index = -1;
+      	//pres = rho_in_current*Rgas*temp_in_current/mu_SN_ejecta
+        //     + ar*std::pow(temp_in_current,3)/3.0;
 
-        for (int l=0; l<NumToRead; ++l) {
-          if (dist > std::abs(v_inner-vr_in[l])) {
-            dist = v_inner-vr_in[l];
-            index = l;
-          }
-        }
-
-        pres = rho_in[index]*Rgas*temp_in[index]/mu_SN_ejecta
-             + ar*temp_in[index]*temp_in[index]*temp_in[index]/3.0;
-
-        prim(IDN,k,j,il-i)        = rho_in[index];
+        prim(IDN,k,j,il-i)        = rhoSunny; // rho_in_current;
         prim(IM1,k,j,il-i)        = v_inner;
         prim(IM2,k,j,il-i)        = 0.0;
         prim(IM3,k,j,il-i)        = 0.0;
         prim(IEN,k,j,il-i)        = pres;
-        pmb->pscalars->r(0,k,j,i) = 1.0;
-        pmb->pscalars->r(1,k,j,i) = ar36_in[index];
-        pmb->pscalars->r(2,k,j,i) = fe56_in[index];
-        pmb->pscalars->r(3,k,j,i) = co56_in[index];
-        pmb->pscalars->r(4,k,j,i) = ni56_in[index];
+	/*
+        pmb->pscalars->r(0,k,j,il-i) = 1.0;
+        pmb->pscalars->r(1,k,j,il-i) = 0.0; // ar36_in_current;
+        pmb->pscalars->r(2,k,j,il-i) = 0.0; // fe56_in_current;
+        pmb->pscalars->r(3,k,j,il-i) = 0.0; // co56_in_current;
+        pmb->pscalars->r(4,k,j,il-i) = 0.0; // ni56_in_current;
+	*/
       }
     }
   }
@@ -348,7 +350,48 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
             }
         }
     }
-}  
+}
+
+//========================================================================================
+//! \fn void Mesh::UserWorkInLoop()
+//  \brief Function called once every time step for user-defined work.
+//========================================================================================
+
+void Mesh::UserWorkInLoop() {
+
+  if (Globals::my_rank==0) {
+
+    Real v_inner = r_inner/(time + t0);
+
+    Real dist;
+    int index;
+
+    dist = 1.0e10;
+    index = -1;
+
+    //std::cout << "starting search" << std::endl;
+    for (int l=0; l<NumToRead; ++l) {
+      if (dist > std::abs(v_inner-vr_in[l])) {
+        dist = std::abs(v_inner-vr_in[l]);
+        index = l;
+      } else {
+        break;
+      }
+    }
+    std::cout << "vr inner = " << v_inner << std::endl;
+    std::cout << "Found index " << index << " with vr = " << vr_in[index] << " and rho = " << rho_in[index] << std::endl;
+
+    rho_in_current  = rho_in[index];
+    vr_in_current   = vr_in[index];
+    temp_in_current = temp_in[index];
+    ar36_in_current = ar36_in[index];
+    fe56_in_current = fe56_in[index];
+    co56_in_current = co56_in[index];
+    ni56_in_current = ni56_in[index];
+
+  }
+
+}
 
 namespace {
 }
