@@ -57,10 +57,11 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
     const AthenaArray<Real>& bcc, AthenaArray<Real>& cons,
     AthenaArray<Real>& cons_scalar);
 
-namespace {
 std::vector<Real> vr_in, rho_in, temp_in, ar36_in, fe56_in, co56_in, ni56_in;
-static Real vr_in_current, rho_in_current, temp_in_current, 
-	    ar36_in_current, fe56_in_current, co56_in_current, ni56_in_current;
+static Real vr_in_current, rho_in_current, temp_in_current,
+            ar36_in_current, fe56_in_current, co56_in_current, ni56_in_current;
+
+namespace {
 Real gammagas, Rgas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej, t0;
 Real Mdotwind, vwind;
 Real day;
@@ -102,7 +103,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   NumToRead         = 107;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
   EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
-  EnrollUserTimeStepFunction(MyTimeStep);
+  //EnrollUserTimeStepFunction(MyTimeStep);
   EnrollUserExplicitSourceFunction(radioactiveHeating);
 
   epsilon_Ni = 1.72e-6; // energy released in decays
@@ -111,7 +112,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   tau_Co     = 111.0*day;
   A_nuc      = 56.0; // mass number
   
-  if (Globals::my_rank==0) {
+  //if (Globals::my_rank==0) {
   char vrFile[256], rhoFile[256], tempFile[256], 
        ar36File[256], fe56File[256], co56File[256], ni56File[256];
   sprintf(vrFile,   "athenainput_vr.txt");
@@ -165,7 +166,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   fe56_in_current = fe56_in[NumToRead-1];
   co56_in_current = co56_in[NumToRead-1];
   ni56_in_current = ni56_in[NumToRead-1];
-  }
+  //}
   
   return;
 }
@@ -290,28 +291,29 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
   v0sq = 4.0 / 3.0 * Eej / Mej;
   prefactor = std::pow(3.0 / 4.0 / 3.14159 / Eej, 1.5) * std::pow(Mej, 2.5);
   rhoSunny = prefactor * std::exp(-v_inner * v_inner / v0sq) * std::pow(time + t0, -3.0);
-  pres = 0.7e14*std::pow(rhoSunny,1.6666666666667);
+  //pres = 0.7e14*std::pow(rhoSunny,1.6666666666667);
   //pres = ramPressureFactor*rhoSunny*vmax*vmax;
+
+  pres = rho_in_current*Rgas*temp_in_current/mu_SN_ejecta + ar*std::pow(temp_in_current,3)/3.0;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
       for (int i=1;  i<=ngh; ++i) {
 
-      	//pres = rho_in_current*Rgas*temp_in_current/mu_SN_ejecta
-        //     + ar*std::pow(temp_in_current,3)/3.0;
+	//std::cout << "BC: setting rho = " << rho_in_current << std::endl;
 
-        prim(IDN,k,j,il-i)        = rhoSunny; // rho_in_current;
+        prim(IDN,k,j,il-i)        = rho_in_current;
         prim(IM1,k,j,il-i)        = v_inner;
         prim(IM2,k,j,il-i)        = 0.0;
         prim(IM3,k,j,il-i)        = 0.0;
         prim(IEN,k,j,il-i)        = pres;
-	/*
+	
         pmb->pscalars->r(0,k,j,il-i) = 1.0;
-        pmb->pscalars->r(1,k,j,il-i) = 0.0; // ar36_in_current;
-        pmb->pscalars->r(2,k,j,il-i) = 0.0; // fe56_in_current;
-        pmb->pscalars->r(3,k,j,il-i) = 0.0; // co56_in_current;
-        pmb->pscalars->r(4,k,j,il-i) = 0.0; // ni56_in_current;
-	*/
+        pmb->pscalars->r(1,k,j,il-i) = ar36_in_current;
+        pmb->pscalars->r(2,k,j,il-i) = fe56_in_current;
+        pmb->pscalars->r(3,k,j,il-i) = co56_in_current;
+        pmb->pscalars->r(4,k,j,il-i) = ni56_in_current;
+	
       }
     }
   }
@@ -321,7 +323,7 @@ Real MyTimeStep(MeshBlock* pmb) {
     Real time   = pmb->pmy_mesh->time;
     Real dt     = pmb->pmy_mesh->dt;
     Real min_dt = 1.0e3;
-    if (time < 0.1) min_dt = std::min(dt, 1.0e-2);
+    if (time < 100.0) min_dt = std::min(dt, 1.0);
     return min_dt;
 }
 
@@ -347,6 +349,9 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
                 cons_scalar(4,k,j,i) += deltaRho_Ni;
                 cons_scalar(3,k,j,i) += deltaRho_Co - deltaRho_Ni;
                 cons_scalar(2,k,j,i) += -deltaRho_Co;
+		if ( std::isnan(cons(IDN,k,j,i)) || cons(IDN,k,j,i)<1.0e-30 ) {
+                    std::cout << "PROBLEMATIC DENSITY: " << cons(IDN,k,j,i) << std::endl;
+		}
             }
         }
     }
