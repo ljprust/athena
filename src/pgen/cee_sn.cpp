@@ -94,7 +94,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   Rgas              = 8.314e7;
   Mdotwind          = 1.0e-8*2.0e33/365.25/24.0/3600.0;
   vwind             = 30.0e5;
-  t0                = r_inner/vmax;
+  t0                = 10.0*Rsun/vmax;
   day               = 24.0*3600.0;
   mproton           = 1.6726e-24;
   mu_SN_ejecta      = 2.0;
