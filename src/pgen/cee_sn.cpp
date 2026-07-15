@@ -58,8 +58,8 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
     AthenaArray<Real>& cons_scalar);
 
 std::vector<Real> vr_in, rho_in, temp_in, ar36_in, fe56_in, co56_in, ni56_in;
-static Real vr_in_current, rho_in_current, temp_in_current,
-            ar36_in_current, fe56_in_current, co56_in_current, ni56_in_current;
+//static Real vr_in_current, rho_in_current, temp_in_current,
+//            ar36_in_current, fe56_in_current, co56_in_current, ni56_in_current;
 
 namespace {
 Real gammagas, Rgas, vmax, ramPressureFactor, rhoISM, r_inner, Rsun, Mej, Eej, t0;
@@ -100,11 +100,11 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   mu_SN_ejecta      = 2.0;
   ar                = 7.5646e-15; // radiation density constant
   kB                = 1.3807e-16; // Boltzmann constant
-  NumToRead         = 107;
+  NumToRead         = 91;
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
-  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
+  //EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   //EnrollUserTimeStepFunction(MyTimeStep);
-  EnrollUserExplicitSourceFunction(radioactiveHeating);
+  //EnrollUserExplicitSourceFunction(radioactiveHeating);
 
   epsilon_Ni = 1.72e-6; // energy released in decays
   epsilon_Co = 3.49e-6;
@@ -113,8 +113,10 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   A_nuc      = 56.0; // mass number
   
   //if (Globals::my_rank==0) {
+  // timeFile[256]
   char vrFile[256], rhoFile[256], tempFile[256], 
        ar36File[256], fe56File[256], co56File[256], ni56File[256];
+  //sprintf(timeFile, "athenainput_time.txt");
   sprintf(vrFile,   "athenainput_vr.txt");
   sprintf(rhoFile,  "athenainput_rho.txt");
   sprintf(tempFile, "athenainput_temp.txt");
@@ -125,6 +127,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   printf("Opening data files with state variables...\n");
   std::ifstream vrFileRead, rhoFileRead, tempFileRead, 
                 ar36FileRead, fe56FileRead, co56FileRead, ni56FileRead;
+  //timeFileRead.open(timeFile);
   vrFileRead.open(vrFile);
   rhoFileRead.open(rhoFile);
   tempFileRead.open(tempFile);
@@ -135,6 +138,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
   Real vr, rho, temp, ar36, fe56, co56, ni56;
   for (int l = 0; l < NumToRead; l++) {
+    //timeFileRead >> timein;
     vrFileRead   >> vr;
     rhoFileRead  >> rho;
     tempFileRead >> temp;
@@ -142,6 +146,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
     fe56FileRead >> fe56;
     co56FileRead >> co56;
     ni56FileRead >> ni56;
+    //time_in.push_back(timein);
     vr_in.push_back(vr);
     rho_in.push_back(rho);
     temp_in.push_back(temp);
@@ -151,6 +156,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
     ni56_in.push_back(ni56);
   }
   printf("Done reading, closing data files\n");
+  //timeFileRead.close();
   vrFileRead.close();
   rhoFileRead.close();
   tempFileRead.close();
@@ -159,13 +165,13 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   co56FileRead.close();
   ni56FileRead.close();
 
-  rho_in_current  = rho_in[NumToRead-1];
-  vr_in_current   = vr_in[NumToRead-1];
-  temp_in_current = temp_in[NumToRead-1];
-  ar36_in_current = ar36_in[NumToRead-1];
-  fe56_in_current = fe56_in[NumToRead-1];
-  co56_in_current = co56_in[NumToRead-1];
-  ni56_in_current = ni56_in[NumToRead-1];
+  //rho_in_current  = rho_in[NumToRead-1];
+  //vr_in_current   = vr_in[NumToRead-1];
+  //temp_in_current = temp_in[NumToRead-1];
+  //ar36_in_current = ar36_in[NumToRead-1];
+  //fe56_in_current = fe56_in[NumToRead-1];
+  //co56_in_current = co56_in[NumToRead-1];
+  //ni56_in_current = ni56_in[NumToRead-1];
   //}
   
   return;
@@ -177,9 +183,13 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 //========================================================================================
 
 void MeshBlock::ProblemGenerator(ParameterInput *pin) {
-  Real r, theta, z;
-  Real diskHeight, rhoCEE, rhoMin, rhoWind;
+  Real r, theta, z, vr;
+  Real diskHeight, rhoCEE, rhoWind;
   Real rho, temp, pres, mintemp;
+
+  mintemp = 1.0e4;
+  Real dist;
+  int index;
 
   //  Initialize density and momenta
   for (int k=ks; k<=ke; ++k) {
@@ -196,26 +206,54 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 	//* 0.01*std::pow(r/10.0/Rsun,-4.0)*std::pow(1.0+std::pow(125.0*Rsun/r,3.5),-1.05); // 500 d
 	* (1.0e-4*std::pow(r/100.0/Rsun,-4.8)*std::pow(1.0+std::pow(690.0*Rsun/r,1.9),-3.4)+6.358e-13*std::pow(r/6000.0/Rsun,-3.2)/(1.0+std::pow(6000.0*Rsun/r,6.0))); // 10000 d
 	
-	//rhoMin = 1.0e-11;
 	rhoWind = Mdotwind/4.0/3.14159/r/r/vwind;
 
-	mintemp = 1.0e4;
+        dist = 1.0e10;
+        index = -1;
 
-	if (rhoCEE > rhoWind && rhoCEE > rhoISM) { // disk
+        //std::cout << "starting search" << std::endl;
+        for (int l=0; l<NumToRead; ++l) {
+          if (dist > std::abs(r/t0-vr_in[l])) {
+            dist = std::abs(r/t0-vr_in[l]);
+            index = l;
+          } else {
+            break;
+          }
+        }
+        //std::cout << "vr inner = " << v_inner << std::endl;
+        //std::cout << "Found index " << index << " at time = " << time_in[index]-t0 << " rho = " << rho_in[index] << " vr = " << vr_in[index] << std::endl;
+
+        for (int l=0; l<NSCALARS; ++l) {
+          pscalars->s(l,k,j,i) = 0.0;
+        } 
+
+        if (r < 10.0*Rsun) { // ejecta
+          rho = rho_in[index];
+          pres = rho_in[index]*Rgas*temp_in[index]/mu_SN_ejecta + ar*std::pow(temp_in[index],4)/3.0;
+          vr = r/t0;
+          pscalars->s(0,k,j,i) = 1.0;
+          pscalars->s(1,k,j,i) = ar36_in[index];
+          pscalars->s(2,k,j,i) = fe56_in[index];
+          pscalars->s(3,k,j,i) = co56_in[index];
+          pscalars->s(4,k,j,i) = ni56_in[index];
+	} else if (rhoCEE > rhoWind && rhoCEE > rhoISM) { // disk
 	  rho = rhoCEE;
-    temp = std::max( mintemp, 4.5e4/(r/100.0/Rsun) );
-    pres = rho*Rgas*temp;
+          temp = std::max( mintemp, 4.5e4/(r/100.0/Rsun) );
+          pres = rho*Rgas*temp;
+          vr = 0.0;
 	} else if (rhoWind > rhoISM) { // wind
 	  rho = rhoWind;
-    pres = rho*Rgas*mintemp;
+          pres = rho*Rgas*mintemp;
+          vr = 0.0;
 	} else { // ISM
-    rho = rhoISM;
-    pres = ramPressureFactor*rhoISM*vmax*vmax;
-  }
+          rho = rhoISM;
+          pres = ramPressureFactor*rhoISM*vmax*vmax;
+          vr = 0.0;
+        }
 
         phydro->u(IDN,k,j,i) = rho;
 
-        phydro->u(IM1,k,j,i) = 0.0; // rho*vel0*std::cos(x2); // radial
+        phydro->u(IM1,k,j,i) = vr; // rho*vel0*std::cos(x2); // radial
         phydro->u(IM2,k,j,i) = 0.0; //-rho*vel0*std::sin(x2); // polar
         phydro->u(IM3,k,j,i) = 0.0;               // azimuth
 
@@ -223,9 +261,6 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 		            // ramPressureFactor*rhoCEE*vmax*vmax; 
                             // pres/(gammagas-1.0) + 0.5*rho*vel0*vel0;
 
-        for (int l=0; l<NSCALARS; ++l) {
-          pscalars->s(l,k,j,i) = 0.0;
-        }
       }
     }
   }
@@ -278,7 +313,7 @@ void DiodeOuterX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, Fac
 //  \brief Sets supernova ejecta inner boundary
 //
 // Quantities in ghost cells are set to Gaussian ejecta model from Wong+24
-
+/*
 void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceField &b,
                Real time, Real dt,
                int il, int iu, int jl, int ju, int kl, int ku, int ngh) {
@@ -291,10 +326,10 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
   v0sq = 4.0 / 3.0 * Eej / Mej;
   prefactor = std::pow(3.0 / 4.0 / 3.14159 / Eej, 1.5) * std::pow(Mej, 2.5);
   rhoSunny = prefactor * std::exp(-v_inner * v_inner / v0sq) * std::pow(time + t0, -3.0);
-  //pres = 0.7e14*std::pow(rhoSunny,1.6666666666667);
+  pres = 0.7e14*std::pow(rhoSunny,1.6666666666667);
   //pres = ramPressureFactor*rhoSunny*vmax*vmax;
 
-  pres = rho_in_current*Rgas*temp_in_current/mu_SN_ejecta + ar*std::pow(temp_in_current,3)/3.0;
+  //pres = rho_in_current*Rgas*temp_in_current/mu_SN_ejecta + ar*std::pow(temp_in_current,4)/3.0;
 
   for (int k=kl; k<=ku; ++k) {
     for (int j=jl; j<=ju; ++j) {
@@ -302,7 +337,7 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
 
 	//std::cout << "BC: setting rho = " << rho_in_current << std::endl;
 
-        prim(IDN,k,j,il-i)        = rho_in_current;
+        prim(IDN,k,j,il-i)        = rhoSunny; // rho_in_current;
         prim(IM1,k,j,il-i)        = v_inner;
         prim(IM2,k,j,il-i)        = 0.0;
         prim(IM3,k,j,il-i)        = 0.0;
@@ -318,7 +353,7 @@ void SNInnerX1(MeshBlock *pmb, Coordinates *pco, AthenaArray<Real> &prim, FaceFi
     }
   }
 }
-
+*/
 Real MyTimeStep(MeshBlock* pmb) {
     Real time   = pmb->pmy_mesh->time;
     Real dt     = pmb->pmy_mesh->dt;
@@ -340,18 +375,18 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
     for (int k = pmb->ks; k <= pmb->ke; ++k) {
         for (int j = pmb->js; j <= pmb->je; ++j) {
             for (int i = pmb->is; i <= pmb->ie; ++i) {
-                cons(IEN,k,j,i) += dt * cons_scalar(4,k,j,i) * coefficient_Ni 
-                                 * std::exp(-1.0 * (time + t0) / tau_Ni)
-                                 + dt * cons_scalar(3,k,j,i) * coefficient_Co
-                                 * std::exp(-1.0 * (time + t0) / tau_Co);
+                //cons(IEN,k,j,i) += dt * cons_scalar(4,k,j,i) * coefficient_Ni 
+                //                 * std::exp(-1.0 * (time + t0) / tau_Ni)
+                //                 + dt * cons_scalar(3,k,j,i) * coefficient_Co
+                //                 * std::exp(-1.0 * (time + t0) / tau_Co);
                 deltaRho_Ni = -dt/tau_Ni*cons_scalar(4,k,j,i); // Ni to Co
                 deltaRho_Co = -dt/tau_Co*cons_scalar(3,k,j,i); // Co to Fe
                 cons_scalar(4,k,j,i) += deltaRho_Ni;
                 cons_scalar(3,k,j,i) += deltaRho_Co - deltaRho_Ni;
                 cons_scalar(2,k,j,i) += -deltaRho_Co;
-		if ( std::isnan(cons(IDN,k,j,i)) || cons(IDN,k,j,i)<1.0e-30 ) {
-                    std::cout << "PROBLEMATIC DENSITY: " << cons(IDN,k,j,i) << std::endl;
-		}
+		//if ( std::isnan(cons(IDN,k,j,i)) || cons(IDN,k,j,i)<1.0e-30 ) {
+                //    std::cout << "PROBLEMATIC DENSITY: " << cons(IDN,k,j,i) << std::endl;
+		//}
             }
         }
     }
@@ -361,7 +396,7 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
 //! \fn void Mesh::UserWorkInLoop()
 //  \brief Function called once every time step for user-defined work.
 //========================================================================================
-
+/*
 void Mesh::UserWorkInLoop() {
 
   if (Globals::my_rank==0) {
@@ -376,15 +411,15 @@ void Mesh::UserWorkInLoop() {
 
     //std::cout << "starting search" << std::endl;
     for (int l=0; l<NumToRead; ++l) {
-      if (dist > std::abs(v_inner-vr_in[l])) {
-        dist = std::abs(v_inner-vr_in[l]);
+      if (dist > std::abs(time+t0-time_in[l])) {
+        dist = std::abs(time+t0-time_in[l]);
         index = l;
       } else {
         break;
       }
     }
     std::cout << "vr inner = " << v_inner << std::endl;
-    std::cout << "Found index " << index << " with vr = " << vr_in[index] << " and rho = " << rho_in[index] << std::endl;
+    std::cout << "Found index " << index << " at time = " << time_in[index]-t0 << " rho = " << rho_in[index] << " vr = " << vr_in[index] << std::endl;
 
     rho_in_current  = rho_in[index];
     vr_in_current   = vr_in[index];
@@ -397,6 +432,6 @@ void Mesh::UserWorkInLoop() {
   }
 
 }
-
+*/
 namespace {
 }
