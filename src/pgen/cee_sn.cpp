@@ -104,7 +104,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, DiodeOuterX1);
   //EnrollUserBoundaryFunction(BoundaryFace::inner_x1, SNInnerX1);
   //EnrollUserTimeStepFunction(MyTimeStep);
-  //EnrollUserExplicitSourceFunction(radioactiveHeating);
+  EnrollUserExplicitSourceFunction(radioactiveHeating);
 
   epsilon_Ni = 1.72e-6; // energy released in decays
   epsilon_Co = 3.49e-6;
@@ -203,39 +203,37 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
         diskHeight = 0.4*r+10.0*Rsun;
 		// Rsun*(95.0*std::log10(r/Rsun)-125.0);
 	rhoCEE = std::exp(-z*z/2.0/diskHeight/diskHeight)
-	//* 0.01*std::pow(r/10.0/Rsun,-4.0)*std::pow(1.0+std::pow(125.0*Rsun/r,3.5),-1.05); // 500 d
-	* (1.0e-4*std::pow(r/100.0/Rsun,-4.8)*std::pow(1.0+std::pow(690.0*Rsun/r,1.9),-3.4)+6.358e-13*std::pow(r/6000.0/Rsun,-3.2)/(1.0+std::pow(6000.0*Rsun/r,6.0))); // 10000 d
+	* 0.01*std::pow(r/10.0/Rsun,-4.0)*std::pow(1.0+std::pow(125.0*Rsun/r,3.5),-1.05); // 500 d
+	//* (1.0e-4*std::pow(r/100.0/Rsun,-4.8)*std::pow(1.0+std::pow(690.0*Rsun/r,1.9),-3.4)+6.358e-13*std::pow(r/6000.0/Rsun,-3.2)/(1.0+std::pow(6000.0*Rsun/r,6.0))); // 10000 d
 	
 	rhoWind = Mdotwind/4.0/3.14159/r/r/vwind;
 
         dist = 1.0e10;
         index = -1;
 
-        //std::cout << "starting search" << std::endl;
-        for (int l=0; l<NumToRead; ++l) {
-          if (dist > std::abs(r/t0-vr_in[l])) {
-            dist = std::abs(r/t0-vr_in[l]);
-            index = l;
-          } else {
-            break;
-          }
-        }
-        //std::cout << "vr inner = " << v_inner << std::endl;
-        //std::cout << "Found index " << index << " at time = " << time_in[index]-t0 << " rho = " << rho_in[index] << " vr = " << vr_in[index] << std::endl;
-
         for (int l=0; l<NSCALARS; ++l) {
           pscalars->s(l,k,j,i) = 0.0;
         } 
 
         if (r < 10.0*Rsun) { // ejecta
+          for (int l=0; l<NumToRead; ++l) {
+            if (dist > std::abs(r/t0-vr_in[l])) {
+              dist = std::abs(r/t0-vr_in[l]);
+              index = l;
+            } else {
+              break;
+            }
+          }
+          //std::cout << "Found index " << index << " at vr = " << vr_in[index] << " rho = " << rho_in[index] << std::endl;
+
           rho = rho_in[index];
           pres = rho_in[index]*Rgas*temp_in[index]/mu_SN_ejecta + ar*std::pow(temp_in[index],4)/3.0;
           vr = r/t0;
-          pscalars->s(0,k,j,i) = 1.0;
-          pscalars->s(1,k,j,i) = ar36_in[index];
-          pscalars->s(2,k,j,i) = fe56_in[index];
-          pscalars->s(3,k,j,i) = co56_in[index];
-          pscalars->s(4,k,j,i) = ni56_in[index];
+          pscalars->s(0,k,j,i) = rho*1.0;
+          pscalars->s(1,k,j,i) = rho*ar36_in[index];
+          pscalars->s(2,k,j,i) = rho*fe56_in[index];
+          pscalars->s(3,k,j,i) = rho*co56_in[index];
+          pscalars->s(4,k,j,i) = rho*ni56_in[index];
 	} else if (rhoCEE > rhoWind && rhoCEE > rhoISM) { // disk
 	  rho = rhoCEE;
           temp = std::max( mintemp, 4.5e4/(r/100.0/Rsun) );
@@ -253,11 +251,11 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
 
         phydro->u(IDN,k,j,i) = rho;
 
-        phydro->u(IM1,k,j,i) = vr; // rho*vel0*std::cos(x2); // radial
+        phydro->u(IM1,k,j,i) = rho*vr; // rho*vel0*std::cos(x2); // radial
         phydro->u(IM2,k,j,i) = 0.0; //-rho*vel0*std::sin(x2); // polar
         phydro->u(IM3,k,j,i) = 0.0;               // azimuth
 
-        phydro->u(IEN,k,j,i) = pres;
+        phydro->u(IEN,k,j,i) = pres/(gammagas-1.0)+0.5*rho*vr*vr;
 		            // ramPressureFactor*rhoCEE*vmax*vmax; 
                             // pres/(gammagas-1.0) + 0.5*rho*vel0*vel0;
 
