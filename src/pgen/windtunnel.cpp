@@ -79,7 +79,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   expgrad = pin->GetOrAddBoolean("problem","expgrad",false);
   staticBoundary = pin->GetOrAddBoolean("problem","staticBoundary",false);
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnel2DOuterX1);
-  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
+  //EnrollUserBoundaryFunction(BoundaryFace::inner_x1, WindTunnel2DInnerX1);
   return;
 }
 
