@@ -20,18 +20,19 @@ Requires scipy if making a stream plot.
 # Python standard modules
 import argparse
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # Other Python modules
 import numpy as np
 
 # Athena++ modules
 import athena_read
+
 gamma = 5.0/3.0
-Pinf = 9109.0 # 1.0/gamma
-rhoinf = 6.76e-9 # 1.0
-nfiles = 1
-first = 50
+plotEntropy = False
+plotMach = False
+plotCircle = False
+nfiles = 0
+first = 1
 interval = 1
 fileprefix = 'wt.out1.'
 filesuffix = '.athdf'
@@ -46,9 +47,10 @@ for i in range(0, nfiles) :
 
 # Main function
 def main(myj,**kwargs):
-    if(nfiles>0):
+
+    if(nfiles>0):       
         kwargs['data_file'] = fileprefix+filename[myj]+filesuffix
-    print 'starting file',kwargs['data_file']
+    print('starting file',kwargs['data_file'])
 
     # Load function for transforming coordinates
     if kwargs['stream'] is not None:
@@ -57,11 +59,9 @@ def main(myj,**kwargs):
     # Load Python plotting modules
     if kwargs['output_file'] != 'show':
         import matplotlib
-        matplotlib.rc("text", usetex=True)
         matplotlib.use('agg')
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
-    from mpl_toolkits.axes_grid1 import Divider, Size
 
     # Determine refinement level to use
     if kwargs['level'] is not None:
@@ -110,6 +110,10 @@ def main(myj,**kwargs):
             datapress = athena_read.athdf(kwargs['data_file'], quantities=['press'],
                                      level=level)
             data['rho'] = gamma/(gamma-1.0)*datapress['press']/data['rho']
+        elif kwargs['tracer'] :
+            data = athena_read.athdf(kwargs['data_file'], quantities=['r0'],
+                                     level=level)
+            data['rho'] = data['r0']
         elif kwargs['bound'] :
             data      = athena_read.athdf(kwargs['data_file'], quantities=['rho'],
                                      level=level)
@@ -192,7 +196,7 @@ def main(myj,**kwargs):
                                      level=level)
             datavel3 = athena_read.athdf(kwargs['data_file'], quantities=['vel3'],
                                      level=level)
-            
+
             v2 = datavel1['vel1']*datavel1['vel1']+datavel2['vel2']*datavel2['vel2']+datavel3['vel3']*datavel3['vel3']
             data['rho'] = np.sqrt(v2/cs2)
             '''
@@ -212,7 +216,7 @@ def main(myj,**kwargs):
                     Pgradrhoback[l] = 0.5*(rhoback[l]+rhoback[l+1])
                     Pgradrad[l] = r_face[l+1]
             '''
-        else :
+        else:
             data = athena_read.athdf(kwargs['data_file'], quantities=quantities,
                                      level=level)
         time = data['Time']
@@ -264,7 +268,7 @@ def main(myj,**kwargs):
                                    / (2.0*np.pi + 2.0 * phi[0])) * (nx3 + 1)
         else:
             z_stream = np.linspace(-r_max, r_max, kwargs['stream_samples'])
-            z_grid_stream, x_grid_stream = np.meshgrid(x_stream, z_stream)
+            x_grid_stream, z_grid_stream = np.meshgrid(x_stream, z_stream)
             r_grid_stream_coord = (x_grid_stream.T**2 + z_grid_stream.T**2) ** 0.5
             theta_grid_stream_coord = np.pi - \
                 np.arctan2(x_grid_stream.T, -z_grid_stream.T)
@@ -300,25 +304,27 @@ def main(myj,**kwargs):
     # Perform slicing/averaging of scalar data
     if kwargs['midplane']:
         if nx2 % 2 == 0:
-            vals = np.mean(data[kwargs['quantity']][:, nx2/2-1:nx2/2+1, :], axis=1)
+            vals = np.mean(data[kwargs['quantity']][:, nx2//2-1:nx2//2+1, :], axis=1)
         else:
-            vals = data[kwargs['quantity']][:, nx2/2, :]
+            vals = data[kwargs['quantity']][:, nx2//2, :]
         if kwargs['average']:
             vals = np.repeat(np.mean(vals, axis=0, keepdims=True), nx3, axis=0)
     else:
         if kwargs['average']:
             vals_right = np.mean(data[kwargs['quantity']], axis=0)
             vals_left = vals_right
-        #else:
-        #    vals_right = 0.5 * (data[kwargs['quantity']]
-        #                        [-1, :, :] + data[kwargs['quantity']][0, :, :])
-        #    vals_left = 0.5 * (data[kwargs['quantity']][(nx3/2)-1, :, :]
-        #                       + data[kwargs['quantity']][nx3 / 2, :, :])
+        else:
+            vals_right = 0.5 * (data[kwargs['quantity']]
+                                [-1, :, :] + data[kwargs['quantity']][0, :, :])
+            vals_left = 0.5 * (data[kwargs['quantity']][(nx3//2)-1, :, :]
+                               + data[kwargs['quantity']][nx3//2, :, :])
+        '''
         else:
             vals_right = 0.5 * (data[kwargs['quantity']][nx3/4-1, :, :]
                                + data[kwargs['quantity']][nx3/4, :, :])
             vals_left = 0.5 * (data[kwargs['quantity']][nx3*3/4-1, :, :]
                                + data[kwargs['quantity']][nx3*3/4, :, :])
+        '''
 
     # Join scalar data through boundaries
     if not kwargs['midplane']:
@@ -329,12 +335,12 @@ def main(myj,**kwargs):
         if kwargs['midplane']:
             if nx2 % 2 == 0:
                 vals_r = np.mean(data[kwargs['stream'] + '1']
-                                 [:, nx2/2-1:nx2/2+1, :], axis=1).T
+                                 [:, nx2//2-1:nx2//2+1, :], axis=1).T
                 vals_phi = np.mean(data[kwargs['stream'] + '3']
-                                   [:, nx2/2-1:nx2/2+1, :], axis=1).T
+                                   [:, nx2//2-1:nx2//2+1, :], axis=1).T
             else:
-                vals_r = data[kwargs['stream'] + '1'][:, nx2/2, :].T
-                vals_phi = data[kwargs['stream'] + '3'][:, nx2/2, :].T
+                vals_r = data[kwargs['stream'] + '1'][:, nx2//2, :].T
+                vals_phi = data[kwargs['stream'] + '3'][:, nx2//2, :].T
             if kwargs['stream_average']:
                 vals_r = np.tile(np.reshape(np.mean(vals_r, axis=1), (nx1, 1)), nx3)
                 vals_phi = np.tile(np.reshape(np.mean(vals_phi, axis=1), (nx1, 1)), nx3)
@@ -346,9 +352,9 @@ def main(myj,**kwargs):
                 vals_theta_left = -vals_theta_right
             else:
                 vals_r_right = data[kwargs['stream'] + '1'][0, :, :].T
-                vals_r_left = data[kwargs['stream'] + '1'][nx3/2, :, :].T
+                vals_r_left = data[kwargs['stream'] + '1'][nx3//2, :, :].T
                 vals_theta_right = data[kwargs['stream'] + '2'][0, :, :].T
-                vals_theta_left = -data[kwargs['stream'] + '2'][nx3/2, :, :].T
+                vals_theta_left = -data[kwargs['stream'] + '2'][nx3//2, :, :].T
 
     # Join vector data through boundaries
     if kwargs['stream'] is not None:
@@ -419,21 +425,13 @@ def main(myj,**kwargs):
     vmin = kwargs['vmin']
     vmax = kwargs['vmax']
     if kwargs['logc']:
-        norm = colors.LogNorm()
+        norm = colors.LogNorm(vmin=vmin, vmax=vmax)
     else:
-        norm = colors.Normalize()
+        norm = colors.Normalize(vmin=vmin, vmax=vmax)
 
     # Make plot
-    fig = plt.figure() #(figsize=[6.0,5.0])
-
-    #    padding          axes
-    #h = [Size.Fixed(1.1), Size.Fixed(7.0), Size.Fixed(1.7)]
-    #v = [Size.Fixed(0.7), Size.Fixed(7.0), Size.Fixed(0.2)]
-    #divider = Divider(fig, (0, 0, 1, 1), h, v, aspect=False)
-    # The width and height of the rectangle are ignored.
-    #ax = fig.add_axes(divider.get_position(),axes_locator=divider.new_locator(nx=1,ny=1))
-
-    im = plt.pcolormesh(y_grid/kwargs['lscale'], x_grid/kwargs['lscale'], vals, cmap=cmap, vmin=vmin, vmax=vmax) # , norm=norm)
+    plt.figure()
+    im = plt.pcolormesh(x_grid/kwargs['lscale'], y_grid//kwargs['lscale'], vals, cmap=cmap, norm=norm)
     #cont = plt.contour(y_grid[0:-1,0:-1], x_grid[0:-1,0:-1], vals, 1, colors='k',origin='lower')
     plt.gca().set_aspect('equal')
     plt.xlim((-r_max/kwargs['lscale']+kwargs['xoffset'], r_max/kwargs['lscale']+kwargs['xoffset']))
@@ -443,7 +441,7 @@ def main(myj,**kwargs):
     circle = plt.Circle((0.0,0.0), 0.02, fc='None', ec='k', lw=1.0)
     #circle = plt.Circle((0.0,0.0), 0.002, fc='k', ec='k', lw=1.0)
     #circle2 = plt.Circle((0.0,0.0), 0.04245, fc='None', ec='k', lw=2.0, ls='--')
-    plt.gca().add_patch(circle)
+    #plt.gca().add_patch(circle)
     #plt.gca().add_patch(circle2)
     #plt.set_cmap('inferno')
     if kwargs['stream'] is not None:
@@ -457,29 +455,32 @@ def main(myj,**kwargs):
                 plt.streamplot(x_stream/kwargs['lscale'], y_stream/kwargs['lscale'], vals_x.T, vals_y.T,
                                density=kwargs['stream_density'], color='k')
             else:
-                plt.streamplot(z_stream/kwargs['lscale']+kwargs['xoffset'], x_stream/kwargs['lscale']-kwargs['xoffset'], vals_z.T, vals_x.T, linewidth=1.0,
-                               density=kwargs['stream_density'], color='k') #, linewidth=4, arrowsize=3)
+                plt.streamplot(x_stream/kwargs['lscale'], z_stream/kwargs['lscale'], vals_x.T, vals_z.T,
+                               density=kwargs['stream_density'], color='k')
+    plt.gca().set_aspect('equal')
+    plt.xlim((-r_max, r_max))
+    plt.ylim((-r_max, r_max))
     if kwargs['logr']:
         if kwargs['midplane']:
-            plt.xlabel(r'$\log_{10}(r)\ x / r$', fontsize=20)
-            plt.ylabel(r'$\log_{10}(r)\ y / r$', fontsize=20)
+            plt.xlabel(r'$\log_{10}(r)\ x / r$')
+            plt.ylabel(r'$\log_{10}(r)\ y / r$')
         else:
-            plt.xlabel(r'$\log_{10}(r)\ x / r$', fontsize=20)
-            plt.ylabel(r'$\log_{10}(r)\ z / r$', fontsize=20)
+            plt.xlabel(r'$\log_{10}(r)\ x / r$')
+            plt.ylabel(r'$\log_{10}(r)\ z / r$')
     else:
         if kwargs['midplane']:
-            plt.xlabel(r'$x/R$', fontsize=20)
-            plt.ylabel(r'$y/R$', fontsize=20)
+            plt.xlabel(r'$x$')
+            plt.ylabel(r'$y$')
         else:
-            #plt.xlabel(r'$x$ $/$ $R$', fontsize=20) # 20
-            #plt.ylabel(r'$z$ $/$ $R$', fontsize=20) # 20
-            plt.xlabel(r'$x/R_{A}$', fontsize=20) # 20
-            plt.ylabel(r'$z/R_{A}$', fontsize=20) # 20
-    myboundaries = [0.0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0]
+            plt.xlabel(r'$x$')
+            plt.ylabel(r'$z$')
+    cbar = plt.colorbar(im)
+    #myboundaries = [0.0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0]
     #cbar = plt.colorbar(im, shrink=0.887, anchor=(0.0,0.78), boundaries=myboundaries) # 0.8
-    ax = plt.axes()
-    cbar = plt.colorbar(im, boundaries=myboundaries)
-    cbar.ax.tick_params(labelsize=14)
+    #ax = plt.axes()
+    #cbar = plt.colorbar(im, boundaries=myboundaries)
+    #cbar.ax.tick_params(labelsize=14)
+
     if kwargs['entropy'] :
         cbar.set_label(r'$\sigma/\sigma_{\infty}$', fontsize=24)
         saveasprefix = 'ent'
@@ -502,20 +503,24 @@ def main(myj,**kwargs):
     elif kwargs['quantity'] == 'vorticity' :
         cbar.set_label(r'$\nabla\times v$', fontsize=24)
         saveasprefix = 'vort'
+    elif kwargs['tracer'] :
+        cbar.set_label(r'$\chi$', fontsize=16)
+        saveasprefix = 'tracer'
     else :
-        cbar.set_label(r'$\rho$ (g/cm$^{3}$)', fontsize=24)
+        cbar.set_label(r'$\rho$ (g/cm$^{3}$)', fontsize=16)
         saveasprefix = 'rho'
     #plt.annotate( r'$t = $' + str(time)[0:4] + r' $R_{A}/c_{s}$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='white', size=16 ) # 16
     #plt.annotate( r'$\mathcal{M}_{\infty}=0.6$, $\gamma=5/3$', xy=(0.02,0.02), xytext=(0.02,0.02), xycoords='axes fraction', color='red', size=20 )
-    ax.text(0.02, 0.02, r'$\mathcal{M}_{\infty}=0.6$, $\gamma=5/3$', color='black', horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes, bbox=dict(facecolor='white', edgecolor='black'), size=16)
-    plt.tight_layout()
+    #ax.text(0.02, 0.02, r'$\mathcal{M}_{\infty}=0.6$, $\gamma=5/3$', color='black', horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes, bbox=dict(facecolor='white', edgecolor='black'), size=16)
+    #plt.tight_layout()
+
     if(nfiles>0):
         kwargs['output_file'] = saveasprefix + filename[myj]
     if kwargs['output_file'] == 'show':
         plt.show()
     else:
-        plt.savefig(kwargs['output_file']) # , bbox_inches='tight')
-        print 'saved figure',kwargs['output_file']
+        plt.savefig(kwargs['output_file'], bbox_inches='tight')
+        print('saved figure',kwargs['output_file'])
 
 
 # Execute main function
@@ -581,15 +586,15 @@ if __name__ == '__main__':
                         type=int,
                         default=100,
                         help='linear size of stream line sampling grid')
-    parser.add_argument('--xoffset',
-                        type=float,
-                        default=0.0,
-                        help='x offset of plot center')
     parser.add_argument('--theta_compression',
                         type=float,
                         default=None,
                         help=('compression parameter h in '
                               'theta = pi*x_2 + (1-h)/2 * sin(2*pi*x_2)'))
+    parser.add_argument('--xoffset',
+                        type=float,
+                        default=0.0,
+                        help='x offset of plot center')
     parser.add_argument('--entropy',
                         action='store_true',
                         help=('plot entropy'))
@@ -620,6 +625,9 @@ if __name__ == '__main__':
     parser.add_argument('--vorticity',
                         action='store_true',
                         help=('plot vorticity'))
+    parser.add_argument('--tracer',
+                        action='store_true',
+                        help=('plot passive tracer'))
     parser.add_argument('--gm',
                         type=float,
                         default=0.0,
@@ -633,6 +641,6 @@ if __name__ == '__main__':
         jindex=0
         for name in filename :
             main(jindex,**vars(args))
-            jindex = jindex+1
+            jindex = jindex+1 
     else :
         main(0,**vars(args))
