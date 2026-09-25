@@ -82,7 +82,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
   // enroll boundary conditions
   EnrollUserBoundaryFunction(BoundaryFace::outer_x1, WindTunnelInflowOutflow);
-  EnrollUserBoundaryFunction(BoundaryFace::inner_x1, PlanetInnerBoundary);
+  //EnrollUserBoundaryFunction(BoundaryFace::inner_x1, PlanetInnerBoundary);
 
   // read in planet profile from text files
   char rFile[256], rhoFile[256], presFile[256];
@@ -144,15 +144,22 @@ void MeshBlock::ProblemGenerator(ParameterInput *pin) {
             }
           }
 
+          //std::cout << "Found index " << index << " with rho " << rho_in[index] << std::endl;
+
           // interpolate the fluid variables
           r_L    = r_in[index-1];
-          r_R    = r_in[index-1];
+          r_R    = r_in[index];
           rho_L  = rho_in[index-1];
           rho_R  = rho_in[index];
           pres_L = pres_in[index-1];
           pres_R = pres_in[index];
           rho    = rho_L  + (rho_R-rho_L)   * (x1-r_L) / (r_R-r_L);
           pres   = pres_L + (pres_R-pres_L) * (x1-r_L) / (r_R-r_L);
+          //std::cout << "Interpolated rho: " << rho << std::endl;
+
+          // limit rho and P to be no less than the ambient values
+          rho  = std::max(rho,  rho_inf);
+          pres = std::max(pres, pres_inf);
 
           vel    = 0.0; // static
           scalar = 1.0; // planetary material
