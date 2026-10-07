@@ -373,10 +373,10 @@ void radioactiveHeating(MeshBlock* pmb, const Real time, const Real dt,
     for (int k = pmb->ks; k <= pmb->ke; ++k) {
         for (int j = pmb->js; j <= pmb->je; ++j) {
             for (int i = pmb->is; i <= pmb->ie; ++i) {
-                //cons(IEN,k,j,i) += dt * cons_scalar(4,k,j,i) * coefficient_Ni 
-                //                 * std::exp(-1.0 * (time + t0) / tau_Ni)
-                //                 + dt * cons_scalar(3,k,j,i) * coefficient_Co
-                //                 * std::exp(-1.0 * (time + t0) / tau_Co);
+                cons(IEN,k,j,i) += dt * cons_scalar(4,k,j,i) * coefficient_Ni 
+                                 * std::exp(-1.0 * (time + t0) / tau_Ni)
+                                 + dt * cons_scalar(3,k,j,i) * coefficient_Co
+                                 * std::exp(-1.0 * (time + t0) / tau_Co);
                 deltaRho_Ni = -dt/tau_Ni*cons_scalar(4,k,j,i); // Ni to Co
                 deltaRho_Co = -dt/tau_Co*cons_scalar(3,k,j,i); // Co to Fe
                 cons_scalar(4,k,j,i) += deltaRho_Ni;
