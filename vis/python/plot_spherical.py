@@ -30,14 +30,14 @@ import athena_read
 # for parsing text
 import re
 
-plotCircle   = False      # plots a circle centered on the origin
-circleRadius = 7.0e9
-nfiles       = 1          # number of files to analyze
-first        = 100          # number of first file
-interval     = 1          # interval between file numbers
-fileprefix   = 'wt.out1.' # file name before number
-filesuffix   = '.athdf'   # file name after number
-paramfilename = 'athinput.windtunnel_wedge'
+plotCircle    = False      # plots a circle centered on the origin
+circleRadius  = 7.0e9
+nfiles        = 1          # number of files to analyze
+first         = 100          # number of first file
+interval      = 1          # interval between file numbers
+fileprefix    = 'wt.out1.' # file name before number
+filesuffix    = '.athdf'   # file name after number
+paramfilename = None # 'athinput.windtunnel_wedge'
 
 # pattern matching the line "GM = ?" in parameter file (can be in scientific notation)
 GM_pattern = r"^GM\s*=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)"
@@ -156,6 +156,11 @@ def main(myj,**kwargs):
             saveasprefix = 'r0_'
             data = athena_read.athdf(kwargs['data_file'], quantities=['r0'],
                                      level=level)
+        elif quantities[0] == 'rhor0' :
+            cbar_label = r'$\chi\rho$'
+            saveasprefix = 'rhor0_'
+            data = athena_read.athdf(kwargs['data_file'], level=level)
+            data['rhor0'] = data['rho']*data['r0']
         elif quantities[0] == 'bernoulli' :
             data      = athena_read.athdf(kwargs['data_file'],
                                      level=level)
@@ -497,6 +502,7 @@ def main(myj,**kwargs):
             plt.xlabel(r'$x$')
             plt.ylabel(r'$z$')
     cbar = plt.colorbar(im)
+    cbar.set_label(cbar_label, fontsize=16)
     #myboundaries = [0.0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0]
     #cbar = plt.colorbar(im, shrink=0.887, anchor=(0.0,0.78), boundaries=myboundaries) # 0.8
     #ax = plt.axes()
