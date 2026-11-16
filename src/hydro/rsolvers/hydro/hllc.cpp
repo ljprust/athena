@@ -169,6 +169,8 @@ void Hydro::RiemannSolver(const int k, const int j, const int il, const int iu,
     flxi[IVZ] = sl*fl[IVZ] + sr*fr[IVZ];
     flxi[IEN] = sl*fl[IEN] + sr*fr[IEN] + sm*cp*am;
 
+    pmy_block->pcoord->vflux(ivx,k,j,i) = sl*wli[IVX] + sr*wri[IVX];
+
     flx(IDN,k,j,i) = flxi[IDN];
     flx(ivx,k,j,i) = flxi[IVX];
     flx(ivy,k,j,i) = flxi[IVY];
