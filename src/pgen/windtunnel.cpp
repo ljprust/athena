@@ -83,6 +83,23 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
   return;
 }
 
+void MeshBlock::InitUserMeshBlockData(ParameterInput *pin)
+{
+  AllocateUserOutputVariables(1);
+  return;
+}
+
+void MeshBlock::UserWorkBeforeOutput(ParameterInput *pin)
+{
+  for(int k=ks; k<=ke; k++) {
+    for(int j=js; j<=je; j++) {
+      for(int i=is; i<=ie; i++) {
+        user_out_var(0,k,j,i) = pcoord->divv(k,j,i);
+      }
+    }
+  }
+}
+
 //========================================================================================
 //! \fn void MeshBlock::ProblemGenerator(ParameterInput *pin)
 //! \brief Initializes wind tunnel.
