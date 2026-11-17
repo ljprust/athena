@@ -46,10 +46,9 @@ class Coordinates {
   AthenaArray<Real> h2f, dh2fd1, h31f, h32f, dh31fd1, dh32fd2;
   AthenaArray<Real> h2v, dh2vd1, h31v, h32v, dh31vd1, dh32vd2;
 
-  // array to store fluid velocity at faces
-  AthenaArray<Real> vflux;
-  // array to store velocity divergence
-  AthenaArray<Real> divv;
+  // arrays to store components of velocity divergence
+  AthenaArray<Real> fluxDivX1;
+  AthenaArray<Real> vDotGradRho;
 
   // functions...
   // ...to compute length of edges

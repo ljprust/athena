@@ -85,7 +85,7 @@ void Mesh::InitUserMeshData(ParameterInput *pin) {
 
 void MeshBlock::InitUserMeshBlockData(ParameterInput *pin)
 {
-  AllocateUserOutputVariables(1);
+  AllocateUserOutputVariables(4);
   return;
 }
 
@@ -94,7 +94,10 @@ void MeshBlock::UserWorkBeforeOutput(ParameterInput *pin)
   for(int k=ks; k<=ke; k++) {
     for(int j=js; j<=je; j++) {
       for(int i=is; i<=ie; i++) {
-        user_out_var(0,k,j,i) = pcoord->divv(k,j,i);
+        user_out_var(0,k,j,i) = pcoord->fluxDivX1(k,j,i);
+        user_out_var(1,k,j,i) = pcoord->vDotGradRho(0,k,j,i);
+        user_out_var(2,k,j,i) = pcoord->vDotGradRho(1,k,j,i);
+        user_out_var(3,k,j,i) = pcoord->vDotGradRho(2,k,j,i);
       }
     }
   }

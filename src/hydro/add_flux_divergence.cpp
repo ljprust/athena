@@ -47,6 +47,16 @@ void Hydro::AddFluxDivergence(const Real wght, AthenaArray<Real> &u_out) {
                  &x2area_p1 = x2face_area_p1_, &x3area = x3face_area_,
                  &x3area_p1 = x3face_area_p1_, &vol = cell_volume_, &dflx = dflx_;
 
+  // reset flux divergence for x1
+  for (int k=ks; k<=ke; ++k) {
+    for (int j=js; j<=je; ++j) {
+#pragma omp simd
+      for (int i=is; i<=ie; ++i) {
+        pmb->pcoord->fluxDivX1(k,j,i) = 0.0;
+      }
+    }
+  }
+
   for (int k=ks; k<=ke; ++k) {
     for (int j=js; j<=je; ++j) {
       // calculate x1-flux divergence
@@ -55,8 +65,6 @@ void Hydro::AddFluxDivergence(const Real wght, AthenaArray<Real> &u_out) {
 #pragma omp simd
         for (int i=is; i<=ie; ++i) {
           dflx(n,i) = (x1area(i+1)*x1flux(n,k,j,i+1) - x1area(i)*x1flux(n,k,j,i));
-          if(n==0) pmb->pcoord->divv(k,j,i) = (x1area(i+1)*pmb->pcoord->vflux(0,k,j,i+1) 
-                                             - x1area(i  )*pmb->pcoord->vflux(0,k,j,i  ));
         }
       }
 
@@ -68,8 +76,6 @@ void Hydro::AddFluxDivergence(const Real wght, AthenaArray<Real> &u_out) {
 #pragma omp simd
           for (int i=is; i<=ie; ++i) {
             dflx(n,i) += (x2area_p1(i)*x2flux(n,k,j+1,i) - x2area(i)*x2flux(n,k,j,i));
-            if(n==0) pmb->pcoord->divv(k,j,i) += (x2area_p1(i)*pmb->pcoord->vflux(1,k,j+1,i) 
-                                                - x2area(i   )*pmb->pcoord->vflux(1,k,j  ,i));
           }
         }
       }
@@ -82,8 +88,6 @@ void Hydro::AddFluxDivergence(const Real wght, AthenaArray<Real> &u_out) {
 #pragma omp simd
           for (int i=is; i<=ie; ++i) {
             dflx(n,i) += (x3area_p1(i)*x3flux(n,k+1,j,i) - x3area(i)*x3flux(n,k,j,i));
-            if(n==0) pmb->pcoord->divv(k,j,i) += (x3area_p1(i)*pmb->pcoord->vflux(2,k+1,j,i) 
-                                                - x3area(i   )*pmb->pcoord->vflux(2,k  ,j,i));
           }
         }
       }
@@ -94,7 +98,8 @@ void Hydro::AddFluxDivergence(const Real wght, AthenaArray<Real> &u_out) {
 #pragma omp simd
         for (int i=is; i<=ie; ++i) {
           u_out(n,k,j,i) -= wght*dflx(n,i)/vol(i);
-          if(n==0) pmb->pcoord->divv(k,j,i) = pmb->pcoord->divv(k,j,i)/vol(i);
+          // add flux divergence to del dot v
+          if(n==0) pmb->pcoord->fluxDivX1(k,j,i) += dflx(IDN,i)/vol(i);
         }
       }
     }

@@ -57,10 +57,9 @@ Coordinates::Coordinates(MeshBlock *pmb, ParameterInput *pin, bool flag) :
   x2f.NewAthenaArray(nc2+1);
   x3f.NewAthenaArray(nc3+1);
 
-  // allocate array for fluid velocities at faces
-  vflux.NewAthenaArray(3, nc3, nc2, nc1);
-  // allocate array for velocity divergence
-  divv.NewAthenaArray(nc3, nc2, nc1);
+  // allocate arrays for velocity divergence
+  fluxDivX1.NewAthenaArray(nc3, nc2, nc1);
+  vDotGradRho.NewAthenaArray(3, nc3, nc2, nc1);
 
   // allocate arrays for volume- and face-centered geometry coefficients of cells
   // (only for spherical-polar, cylindrical, cartesian coordinates, for now)

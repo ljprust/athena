@@ -115,6 +115,8 @@ void Reconstruction::PiecewiseLinearX1(
     for (int i=il; i<=iu; ++i) {
       wl(n,i+1) = wc(n,i) + ((pco->x1f(i+1) - pco->x1v(i))/pco->dx1f(i))*dwm(n,i);
       wr(n,i  ) = wc(n,i) - ((pco->x1v(i  ) - pco->x1f(i))/pco->dx1f(i))*dwm(n,i);
+      // compute component of del dot v
+      pco->vDotGradRho(0,k,j,i) = dwm(IDN,i)/pco->dx1f(i)*wc(IVX,i);
     }
   }
 
@@ -230,6 +232,8 @@ void Reconstruction::PiecewiseLinearX2(
     for (int i=il; i<=iu; ++i) {
       wl(n,i) = wc(n,i) + dxp*dwm(n,i);
       wr(n,i) = wc(n,i) - dxm*dwm(n,i);
+      // compute component of del dot v
+      pco->vDotGradRho(1,k,j,i) = dwm(IDN,i)/pco->dx2f(j)*wc(IVY,i);
     }
   }
 
@@ -336,6 +340,8 @@ void Reconstruction::PiecewiseLinearX3(
     for (int i=il; i<=iu; ++i) {
       wl(n,i) = wc(n,i) + dxp*dwm(n,i);
       wr(n,i) = wc(n,i) - dxm*dwm(n,i);
+      // compute component of del dot v
+      pco->vDotGradRho(2,k,j,i) = dwm(IDN,i)/pco->dx3f(k)*wc(IVY,i);
     }
   }
 
